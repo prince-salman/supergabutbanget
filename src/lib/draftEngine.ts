@@ -450,27 +450,67 @@ export class DraftEngine {
       const hasSignaturePlayer = myTeam.roster.some(p => p.role === hero.lane && p.signature.includes(hero.name));
       if (hasSignaturePlayer) score += 35;
 
-      // 2. Base Tier Power
-      if (hero.tier === 'S+') score += 32;
-      else if (hero.tier === 'S') score += 22;
-      else if (hero.tier === 'A+') score += 16;
-      else if (hero.tier === 'A') score += 10;
+      // 2. Base Tier Power & Meta Urgency (Priority S+ First Picks)
+      if (hero.tier === 'S+') {
+        score += (myPicks.length < 2 ? 45 : 32); // Huge first-pick meta priority!
+      } else if (hero.tier === 'S') {
+        score += 24;
+      } else if (hero.tier === 'A+') {
+        score += 16;
+      } else if (hero.tier === 'A') {
+        score += 10;
+      }
 
-      // 3. Deep Tactical Counter-Pick Intelligence
+      // 3. Flex Pick Versatility Bonus (Can flex into 2 roles)
+      if (hero.secondaryLane) {
+        score += 20;
+      }
+
+      // 4. Iconic Teammate Duo Combos & Wombo-Combo Synergies
+      myPicks.forEach(myHero => {
+        // Johnson + Odette / Kadita
+        if (myHero.name === 'Johnson' && (hero.name === 'Odette' || hero.name === 'Kadita')) score += 55;
+        if ((myHero.name === 'Odette' || myHero.name === 'Kadita') && hero.name === 'Johnson') score += 55;
+
+        // Carmilla + Cecilion
+        if (myHero.name === 'Carmilla' && hero.name === 'Cecilion') score += 60;
+        if (myHero.name === 'Cecilion' && hero.name === 'Carmilla') score += 60;
+
+        // Tigreal / Atlas + Pharsa / Yve / Gord / Novaria (Wombo Combo AoE)
+        if (['Tigreal', 'Atlas', 'Minotaur'].includes(myHero.name) && ['Pharsa', 'Yve', 'Gord', 'Zetian', 'Odette', 'Luo Yi'].includes(hero.name)) score += 48;
+        if (['Pharsa', 'Yve', 'Gord', 'Zetian', 'Odette'].includes(myHero.name) && ['Tigreal', 'Atlas', 'Minotaur'].includes(hero.name)) score += 48;
+
+        // Dive Assassin + Angela / Floryn (Global Shield Dive)
+        if (['Fanny', 'Ling', 'Suyou', 'Nolan', 'Lancelot', 'Joy', 'Hirara'].includes(myHero.name) && (hero.name === 'Angela' || hero.name === 'Floryn')) score += 48;
+        if ((myHero.name === 'Angela' || myHero.name === 'Floryn') && ['Fanny', 'Ling', 'Suyou', 'Nolan', 'Lancelot', 'Joy', 'Hirara'].includes(hero.name)) score += 48;
+
+        // Sustain Deathball: Estes / Rafaela + Barats / Fredrinn / Uranus / Hylos
+        if (['Estes', 'Rafaela', 'Floryn'].includes(myHero.name) && ['Barats', 'Fredrinn', 'Uranus', 'Hylos', 'Baxia', 'Terizla'].includes(hero.name)) score += 48;
+        if (['Barats', 'Fredrinn', 'Uranus', 'Hylos', 'Baxia', 'Terizla'].includes(myHero.name) && ['Estes', 'Rafaela', 'Floryn'].includes(hero.name)) score += 48;
+
+        // Arlott + CC Displacers (Chou, Ruby, Jawhead, Martis)
+        if (myHero.name === 'Arlott' && ['Chou', 'Ruby', 'Jawhead', 'Martis', 'Akai', 'Franco'].includes(hero.name)) score += 42;
+        if (['Chou', 'Ruby', 'Jawhead', 'Martis', 'Akai', 'Franco'].includes(myHero.name) && hero.name === 'Arlott') score += 42;
+
+        // Diggie / Mathilda + Hard Hypercarry (Claude, Karrie, Beatrix, Bruno)
+        if (['Diggie', 'Mathilda'].includes(myHero.name) && ['Claude', 'Karrie', 'Beatrix', 'Bruno', 'Moskov'].includes(hero.name)) score += 42;
+      });
+
+      // 5. Deep Tactical Counter-Pick Intelligence
       enemyPicks.forEach(enemyHero => {
         // Direct counter list check
         if (hero.counters && hero.counters.includes(enemyHero.name)) {
-          score += 45; // Heavy priority counter-pick!
+          score += 48; // Heavy priority counter-pick!
         }
         if (hero.counteredBy && hero.counteredBy.includes(enemyHero.name)) {
-          score -= 32; // Avoid being counter-picked!
+          score -= 34; // Avoid being counter-picked!
         }
 
         // Anti-Mobility Counter Check
         const isEnemyMobile = ['Fanny', 'Ling', 'Joy', 'Lancelot', 'Benedetta', 'Harith', 'Suyou', 'Nolan', 'Hayabusa', 'Hirara'].includes(enemyHero.name);
         if (isEnemyMobile) {
           if (['Khufra', 'Minsitthar', 'Kaja', 'Franco', 'Phoveus', 'Ruby', 'Chou', 'Akai', 'Saber', 'Kalea'].includes(hero.name)) {
-            score += 42;
+            score += 45;
           }
         }
 
@@ -478,7 +518,7 @@ export class DraftEngine {
         const isEnemyHealer = ['Estes', 'Floryn', 'Rafaela', 'Uranus', 'Fredrinn', 'Barats', 'Hylos', 'Kalea'].includes(enemyHero.name);
         if (isEnemyHealer) {
           if (['Baxia', 'Luo Yi', 'Carmilla', 'Dyrroth', 'Lunox', 'Valir', 'Karrie'].includes(hero.name)) {
-            score += 40;
+            score += 42;
           }
         }
 
@@ -486,7 +526,7 @@ export class DraftEngine {
         const isEnemyBasicMM = ['Claude', 'Beatrix', 'Moskov', 'Bruno', 'Karrie', 'Wanwan', 'Miya', 'Layla', 'Irithel', 'Obsidia'].includes(enemyHero.name);
         if (isEnemyBasicMM) {
           if (['Lolita', 'Belerick', 'Gatotkaca', 'Saber', 'Chou', 'Hayabusa', 'Marcel'].includes(hero.name)) {
-            score += 38;
+            score += 40;
           }
         }
 
@@ -494,7 +534,7 @@ export class DraftEngine {
         const isEnemyArtillery = ['Pharsa', 'Novaria', 'Yve', 'Xavier', 'Cecilion', 'Gord', 'Zetian', 'Odette'].includes(enemyHero.name);
         if (isEnemyArtillery) {
           if (['Ling', 'Hayabusa', 'Nolan', 'Suyou', 'Yu Zhong', 'Joy', 'Lancelot', 'Hirara', 'Sora'].includes(hero.name)) {
-            score += 38;
+            score += 40;
           }
         }
 
@@ -502,29 +542,29 @@ export class DraftEngine {
         const isEnemyHardCC = ['Atlas', 'Tigreal', 'Minotaur', 'Terizla', 'Grock', 'Kalea'].includes(enemyHero.name);
         if (isEnemyHardCC) {
           if (['Diggie', 'Kadita', 'Valir', 'Akai', 'Wanwan', 'Gloo'].includes(hero.name)) {
-            score += 40;
+            score += 42;
           }
         }
       });
 
-      // 4. Team Synergy & Composition Balance
+      // 6. Team Synergy & Composition Balance
       const currentStats = this.calculateTeamStats(myPicks);
       if (currentStats.frontline < 50 && (hero.stats.frontline > 75 || hero.lane === 'EXP' || hero.lane === 'Roam' || hero.role === 'Tank')) {
-        score += 22;
+        score += 24;
       }
       if (currentStats.cc < 50 && hero.stats.cc > 80) {
-        score += 22;
+        score += 24;
       }
       if (currentStats.waveclear < 50 && hero.stats.waveclear > 85) {
-        score += 16;
+        score += 18;
       }
 
       // Hybrid Damage Check
       const hasPhysical = myPicks.some(p => p.damageType === 'Physical');
       const hasMagic = myPicks.some(p => p.damageType === 'Magic');
       if (myPicks.length >= 3) {
-        if (!hasPhysical && hero.damageType === 'Physical') score += 20;
-        if (!hasMagic && hero.damageType === 'Magic') score += 20;
+        if (!hasPhysical && hero.damageType === 'Physical') score += 22;
+        if (!hasMagic && hero.damageType === 'Magic') score += 22;
       }
 
       return { hero, score };
