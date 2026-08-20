@@ -6,7 +6,7 @@ import { audioMgr } from '@/lib/audioManager';
 import { globalRateLimiter } from '@/lib/security';
 import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
 import { getHeroPurchasedItems, MLBBItem } from '@/lib/data/items';
-import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
+import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle, Sparkles, TrendingUp, Users, Radio } from 'lucide-react';
 
 interface MatchScreenProps {
   draftResult: DraftResult;
@@ -25,6 +25,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
   const [speed, setSpeed] = useState<number>(1);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [activeTactic, setActiveTactic] = useState<string>('balanced');
+  const [mobileMatchTab, setMobileMatchTab] = useState<'squads' | 'caster'>('squads');
   const [activeKillBanner, setActiveKillBanner] = useState<{
     killer: { name: string; heroName: string; heroId: string; side: string };
     victim: { name: string; heroName: string; heroId: string; side: string };
@@ -458,7 +459,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
         // 7. Update Heroes (Gold, Items, CC, Buff Aura, Active Legendary Items, Combat)
         heroes.forEach(h => {
-          // Feature 1: Immortality Revive handling
+          // Immortality Revive handling
           if (h.isReviving) {
             h.reviveTimer -= dt;
             if (h.reviveTimer <= 0) {
@@ -472,16 +473,16 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             return;
           }
 
-          // Feature 1: Winter Crown Freeze timer
+          // Winter Crown Freeze timer
           if (h.isFrozenInvulnerable) {
             h.frozenTimer -= dt;
             if (h.frozenTimer <= 0) {
               h.isFrozenInvulnerable = false;
             }
-            return; // Invulnerable in ice block!
+            return;
           }
 
-          // Feature 1: Wind of Nature timer
+          // Wind of Nature timer
           if (h.wonActive) {
             h.wonTimer -= dt;
             if (h.wonTimer <= 0) {
@@ -510,7 +511,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             if (h.ccTimer <= 0) {
               h.ccStatus = null;
             }
-            return; // Immobilized while CC'd!
+            return;
           }
 
           // Passive Gold & Level Scaling
@@ -570,7 +571,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             logCommentary(`🌿 AMBUSH! ${h.playerName} (${h.heroName}) menyergap dari semak-semak!`, 'highlight');
           }
 
-          // Feature 1: Trigger Winter Crown if low HP
+          // Trigger Winter Crown if low HP
           const hasWinter = h.items.some((it: MLBBItem) => it.id === 'winter_crown');
           if (hasWinter && !h.winterCrownUsed && h.hp < h.maxHp * 0.25) {
             h.winterCrownUsed = true;
@@ -581,7 +582,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             return;
           }
 
-          // Feature 1: Trigger Wind of Nature (WoN) for Marksman
+          // Trigger Wind of Nature (WoN) for Marksman
           const hasWoN = h.items.some((it: MLBBItem) => it.id === 'wind_of_nature');
           if (hasWoN && !h.wonActive && h.hp < h.maxHp * 0.35 && h.hero.role === 'Marksman') {
             h.wonActive = true;
@@ -646,13 +647,12 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             const baseDmg = h.atk + Math.random() * 30;
             let dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
 
-            // If target has WoN active and attack is physical, negate damage
             if (nearestEnemy.wonActive && h.hero.damageType === 'Physical') {
               dmg = 0;
               damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 14, text: 'IMMUNE', color: '#2ecc71', life: 0.5 });
             }
 
-            // Hero Ultimate Skill Cast & Trigger CC Stun
+            // Ultimate Skill Cast & Trigger CC Stun
             if (now - h.lastUltTime > 12000) {
               h.lastUltTime = now;
               const ultColor = h.hero.role === 'Mage' ? '#9b59b6' : h.hero.role === 'Assassin' ? '#e74c3c' : h.hero.role === 'Tank' ? '#f39c12' : '#3498db';
@@ -710,7 +710,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               });
             }
 
-            // Feature 1: Immortality Trigger Check on Fatal Blow
+            // Immortality Trigger Check on Fatal Blow
             if (nearestEnemy.hp <= 0 && !nearestEnemy.isDead && !nearestEnemy.isReviving) {
               const hasImmortality = nearestEnemy.items.some((it: MLBBItem) => it.id === 'immortality');
               if (hasImmortality && !nearestEnemy.immortalityUsed) {
@@ -855,14 +855,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         }
 
-        // 9. Feature 4: Turret Pushing with Backdoor Protection
+        // 9. Turret Pushing with Backdoor Protection
         heroes.forEach(h => {
           if (h.isDead) return;
           const enemyTurrets = turrets.filter(t => t.side !== h.side && t.hp > 0 && Math.hypot(t.x - h.x, t.y - h.y) < 75);
           if (enemyTurrets.length > 0) {
             const t = enemyTurrets[0];
             
-            // Check if friendly minions are within range (130px) to disable backdoor
             const hasFriendlyMinions = minions.some(m => m.side === h.side && Math.hypot(m.x - t.x, m.y - t.y) < 130);
             t.hasBackdoorShield = !hasFriendlyMinions;
             const dmgMult = hasFriendlyMinions ? 1.0 : 0.25;
@@ -953,7 +952,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       ctx.strokeStyle = '#ff7675'; ctx.lineWidth = 3; ctx.stroke();
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('RED BASE', bases.red.x, bases.red.y + 40);
 
-      // Turrets (Feature 4: Render glowing Backdoor Defense Dome if active)
+      // Turrets
       turrets.forEach(t => {
         if (t.hp <= 0) return;
 
@@ -1345,13 +1344,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
   const blueGoldPct = Math.min(85, Math.max(15, (blueGold / totalGold) * 100));
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-4 animate-fadeIn text-gray-900">
+    <main className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4 animate-fadeIn text-gray-900">
       {/* 1. Official MPL Match Scoreboard Bar */}
-      <div className="bg-gradient-to-r from-[#0d1622] via-[#141f2e] to-[#0d1622] px-4 md:px-8 py-3 rounded-2xl border border-white/10 flex flex-col shadow-2xl mb-4 text-white gap-2">
+      <div className="bg-gradient-to-r from-[#0d1622] via-[#141f2e] to-[#0d1622] px-3 sm:px-6 py-2.5 sm:py-3 rounded-2xl border border-white/10 flex flex-col shadow-2xl mb-3 text-white gap-2">
         <div className="flex items-center justify-between">
           {/* Blue Team Banner */}
-          <div className="flex items-center gap-3 w-1/3">
-            <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 w-1/3">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
               <img
                 src={getTeamLogoUrl(draftResult.blueTeam.tag, draftResult.blueTeam.themeColor)}
                 alt={draftResult.blueTeam.tag}
@@ -1359,10 +1358,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               />
             </div>
             <div>
-              <div className="text-xs md:text-sm font-black text-blue-400 uppercase tracking-wide truncate font-mpl-title">
+              <div className="text-[11px] sm:text-sm font-black text-blue-400 uppercase tracking-wide truncate font-mpl-title">
                 {draftResult.blueTeam.name}
               </div>
-              <div className="text-[10px] text-gray-400 font-mono">
+              <div className="text-[8px] sm:text-[10px] text-gray-400 font-mono">
                 🐢 {matchState?.turtles.blue || 0}/3 • 👑 {matchState?.lords.blue || 0} • 🏰 {matchState?.turrets.blue || 6} • 💰 {(blueGold / 1000).toFixed(1)}k
               </div>
             </div>
@@ -1370,27 +1369,27 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
           {/* Center Score & Match Clock */}
           <div className="flex flex-col items-center justify-center">
-            <div className="flex items-center gap-4 text-2xl md:text-4xl font-black font-mono">
+            <div className="flex items-center gap-2 sm:gap-4 text-xl sm:text-3xl md:text-4xl font-black font-mono">
               <span className="text-blue-400">{matchState?.score.blue || 0}</span>
-              <span className="text-gray-500 text-lg">:</span>
+              <span className="text-gray-500 text-sm sm:text-lg">:</span>
               <span className="text-red-400">{matchState?.score.red || 0}</span>
             </div>
-            <div className="text-xs font-mono font-bold text-mpl-gold bg-black/60 px-3 py-0.5 rounded-full border border-white/10 mt-1">
+            <div className="text-[10px] sm:text-xs font-mono font-bold text-mpl-gold bg-black/60 px-2 sm:px-3 py-0.5 rounded-full border border-white/10 mt-0.5">
               ⏱️ {min}:{sec}
             </div>
           </div>
 
           {/* Red Team Banner */}
-          <div className="flex items-center justify-end gap-3 w-1/3 text-right">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 w-1/3 text-right">
             <div>
-              <div className="text-xs md:text-sm font-black text-red-400 uppercase tracking-wide truncate font-mpl-title">
+              <div className="text-[11px] sm:text-sm font-black text-red-400 uppercase tracking-wide truncate font-mpl-title">
                 {draftResult.redTeam.name}
               </div>
-              <div className="text-[10px] text-gray-400 font-mono">
+              <div className="text-[8px] sm:text-[10px] text-gray-400 font-mono">
                 💰 {(redGold / 1000).toFixed(1)}k • 🏰 {matchState?.turrets.red || 6} • 👑 {matchState?.lords.red || 0} • 🐢 {matchState?.turtles.red || 0}/3
               </div>
             </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
               <img
                 src={getTeamLogoUrl(draftResult.redTeam.tag, draftResult.redTeam.themeColor)}
                 alt={draftResult.redTeam.tag}
@@ -1401,14 +1400,14 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         </div>
 
         {/* Live Broadcast Gold Lead Bar */}
-        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono">
-          <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+        <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-[9px] sm:text-[10px] font-mono">
+          <div className="flex items-center gap-1 text-blue-400 font-bold">
             <span>{draftResult.blueTeam.shortName}</span>
             <span>{blueGold.toLocaleString()}g</span>
           </div>
 
-          <div className="flex-1 mx-4 flex flex-col items-center">
-            <div className="w-full bg-red-950/60 h-2 rounded-full overflow-hidden flex border border-white/10">
+          <div className="flex-1 mx-2 sm:mx-4 flex flex-col items-center">
+            <div className="w-full bg-red-950/60 h-1.5 sm:h-2 rounded-full overflow-hidden flex border border-white/10">
               <div
                 className="bg-blue-500 h-full transition-all duration-300"
                 style={{ width: `${blueGoldPct}%` }}
@@ -1418,7 +1417,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 style={{ width: `${100 - blueGoldPct}%` }}
               />
             </div>
-            <span className="text-[9px] font-black uppercase text-mpl-gold mt-0.5 tracking-wider">
+            <span className="text-[8px] sm:text-[9px] font-black uppercase text-mpl-gold mt-0.5 tracking-wider">
               {goldDiff < 400
                 ? '⚖️ GOLD IMBANG'
                 : isBlueAhead
@@ -1427,7 +1426,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-red-400 font-bold">
+          <div className="flex items-center gap-1 text-red-400 font-bold">
             <span>{redGold.toLocaleString()}g</span>
             <span>{draftResult.redTeam.shortName}</span>
           </div>
@@ -1435,67 +1434,69 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       </div>
 
       {/* 2. Main Match Arena Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Blue Squad Column (with 6 Items Equipment Build per Player) */}
-        <div className="lg:col-span-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-md flex flex-col gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+        {/* Blue Squad Column (Desktop or Active Tab on Mobile) */}
+        <div className={`lg:col-span-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-md flex-col gap-2 ${
+          mobileMatchTab === 'squads' ? 'flex' : 'hidden lg:flex'
+        }`}>
           <h4 className="text-xs font-black text-blue-700 uppercase mb-1 flex items-center gap-1.5 font-mpl-title">
             🔵 {draftResult.blueTeam.shortName} SQUAD
           </h4>
           {matchState?.heroes.filter(h => h.side === 'blue').map(h => (
             <div
               key={h.id}
-              className={`p-2 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1.5 transition ${
+              className={`p-1.5 sm:p-2 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1 transition ${
                 h.isDead ? 'opacity-40 grayscale bg-red-50/40' : ''
               }`}
             >
               <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-blue-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border border-blue-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
                     <img
                       src={getHeroImageUrl(h.heroId, h.heroName)}
                       alt={h.heroName}
                       className="w-full h-full object-cover"
                     />
                     {h.isDead && (
-                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[9px] text-red-400 font-mono font-bold">
+                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[8px] text-red-400 font-mono font-bold">
                         {Math.ceil(h.respawnTimer)}s
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <div className="font-bold text-gray-900 text-[11px] flex items-center gap-1.5">
+                    <div className="font-bold text-gray-900 text-[10px] sm:text-[11px] flex items-center gap-1">
                       <span>{h.playerName}</span>
                       <img
                         src={getPlayerAvatarUrl(h.playerName, draftResult.blueTeam.themeColor)}
                         alt={h.playerName}
-                        className="w-4 h-4 rounded-full border border-gray-300"
+                        className="w-3.5 h-3.5 rounded-full border border-gray-300"
                       />
                     </div>
-                    <div className="text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
+                    <div className="text-[8px] sm:text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="font-mono text-gray-900 font-black text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
-                  <div className="text-[9px] text-gray-500 font-mono font-bold">{h.gold}g</div>
+                  <div className="font-mono text-gray-900 font-black text-[10px] sm:text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
+                  <div className="text-[8px] sm:text-[9px] text-gray-500 font-mono font-bold">{h.gold}g</div>
                 </div>
               </div>
 
-              {/* 6 Real MLBB Item Slots Display */}
-              <div className="flex items-center gap-1 pt-1 border-t border-gray-200">
+              {/* 6 Real MLBB Item Slots */}
+              <div className="flex items-center gap-1 pt-0.5 border-t border-gray-200">
                 {[0, 1, 2, 3, 4, 5].map(idx => {
                   const it = h.items && h.items[idx];
                   return (
                     <div
                       key={idx}
-                      className="w-5 h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[10px] overflow-hidden"
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[9px] sm:text-[10px] overflow-hidden"
                       title={it ? `${it.name} (${it.category})` : 'Slot Kosong'}
                     >
                       {it ? (
                         <span>{it.icon}</span>
                       ) : (
-                        <span className="text-[8px] text-gray-400 font-mono">•</span>
+                        <span className="text-[7px] text-gray-400 font-mono">•</span>
                       )}
                     </div>
                   );
@@ -1507,30 +1508,30 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
         {/* Center: Land of Dawn Arena Canvas & Real Kill Banner */}
         <div className="lg:col-span-6 flex flex-col items-center">
-          <div className="relative rounded-2xl overflow-hidden border-2 border-gray-300 shadow-2xl bg-black w-full">
-            <canvas ref={canvasRef} width={800} height={600} className="w-full max-w-[800px] h-auto block" />
+          <div className="relative rounded-2xl overflow-hidden border-2 border-gray-300 shadow-2xl bg-black w-full aspect-[4/3] flex items-center justify-center">
+            <canvas ref={canvasRef} width={800} height={600} className="w-full h-full object-contain block" />
 
             {/* Top-Center Animated Kill Banner */}
             {activeKillBanner && (
-              <div className="absolute top-4 inset-x-0 flex justify-center pointer-events-none animate-bounce">
-                <div className="bg-gradient-to-r from-red-950/90 via-black/95 to-red-950/90 border-2 border-amber-400 px-6 py-2 rounded-2xl shadow-2xl flex items-center gap-4 text-white">
+              <div className="absolute top-2 sm:top-4 inset-x-0 flex justify-center pointer-events-none animate-bounce z-20">
+                <div className="bg-gradient-to-r from-red-950/90 via-black/95 to-red-950/90 border-2 border-amber-400 px-3 sm:px-6 py-1.5 sm:py-2 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-4 text-white">
                   <img
                     src={getHeroImageUrl(activeKillBanner.killer.heroId, activeKillBanner.killer.heroName)}
                     alt="Killer"
-                    className="w-9 h-9 rounded-full border-2 border-blue-400 object-cover"
+                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 border-blue-400 object-cover"
                   />
                   <div className="text-center">
-                    <div className="text-sm font-black uppercase text-amber-400 font-mpl-title tracking-wider">
+                    <div className="text-xs sm:text-sm font-black uppercase text-amber-400 font-mpl-title tracking-wider">
                       {activeKillBanner.title}
                     </div>
-                    <div className="text-[10px] text-gray-300 font-bold">
+                    <div className="text-[9px] sm:text-[10px] text-gray-300 font-bold">
                       {activeKillBanner.killer.name} ⚔️ {activeKillBanner.victim.name}
                     </div>
                   </div>
                   <img
                     src={getHeroImageUrl(activeKillBanner.victim.heroId, activeKillBanner.victim.heroName)}
                     alt="Victim"
-                    className="w-9 h-9 rounded-full border-2 border-red-500 object-cover opacity-60 grayscale"
+                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 border-red-500 object-cover opacity-60 grayscale"
                   />
                 </div>
               </div>
@@ -1538,11 +1539,11 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           </div>
 
           {/* Coach Tactical Directives */}
-          <div className="w-full bg-white p-3.5 rounded-2xl border border-gray-200 mt-3 shadow-md">
-            <div className="text-[11px] font-black text-[#680008] uppercase tracking-wider mb-2 flex items-center gap-1.5 font-mpl-title">
-              <Zap className="w-4 h-4 text-mpl-gold" /> INSTRUKSI TAKTIKAL HEAD COACH (LIVE):
+          <div className="w-full bg-white p-3 sm:p-3.5 rounded-2xl border border-gray-200 mt-2.5 sm:mt-3 shadow-md">
+            <div className="text-[10px] sm:text-[11px] font-black text-[#680008] uppercase tracking-wider mb-2 flex items-center gap-1.5 font-mpl-title">
+              <Zap className="w-3.5 h-3.5 text-mpl-gold" /> INSTRUKSI TAKTIKAL HEAD COACH (LIVE):
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 sm:gap-1.5">
               {[
                 { id: 'balanced', label: '⚖️ Standar' },
                 { id: 'lord_contest', label: '👑 Setup Lord' },
@@ -1554,7 +1555,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 <button
                   key={t.id}
                   onClick={() => handleApplyTactic(t.id)}
-                  className={`px-2 py-2 rounded-xl text-[10px] font-black transition border ${
+                  className={`px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black transition border ${
                     activeTactic === t.id
                       ? 'bg-[#680008] text-white border-[#680008] shadow-md'
                       : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
@@ -1566,14 +1567,14 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             </div>
 
             {/* Speed & Pause Controls */}
-            <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-gray-100 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-gray-500">Kecepatan:</span>
+            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-gray-100 text-xs">
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-gray-500">Speed:</span>
                 {[1, 2, 4].map(s => (
                   <button
                     key={s}
                     onClick={() => handleSetSpeed(s)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-black ${
+                    className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-black ${
                       speed === s ? 'bg-[#680008] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -1584,18 +1585,41 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
               <button
                 onClick={handleTogglePause}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-900 hover:bg-black text-white text-xs font-bold transition shadow"
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg bg-gray-900 hover:bg-black text-white text-[10px] sm:text-xs font-bold transition shadow"
               >
-                {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                {isPaused ? 'Lanjutkan' : 'Jeda Match'}
+                {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                {isPaused ? 'Lanjut' : 'Jeda'}
               </button>
             </div>
           </div>
+
+          {/* Mobile Bottom Tabs Switcher (< 1024px) */}
+          <div className="lg:hidden w-full flex rounded-xl bg-gray-200 p-1 mt-2.5 gap-1 text-xs font-bold font-mpl-title">
+            <button
+              onClick={() => setMobileMatchTab('squads')}
+              className={`flex-1 py-1.5 rounded-lg transition flex items-center justify-center gap-1 ${
+                mobileMatchTab === 'squads' ? 'bg-[#680008] text-white shadow' : 'text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" /> Skuad & Item
+            </button>
+            <button
+              onClick={() => setMobileMatchTab('caster')}
+              className={`flex-1 py-1.5 rounded-lg transition flex items-center justify-center gap-1 ${
+                mobileMatchTab === 'caster' ? 'bg-[#680008] text-white shadow' : 'text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" /> Caster Feed
+            </button>
+          </div>
         </div>
 
-        {/* Red Squad Column (with 6 Items Equipment Build per Player) */}
-        <div className="lg:col-span-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-md flex flex-col gap-3">
-          <div>
+        {/* Red Squad Column & Live Caster Feed */}
+        <div className={`lg:col-span-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-md flex-col gap-3 ${
+          mobileMatchTab === 'squads' || mobileMatchTab === 'caster' ? 'flex' : 'hidden lg:flex'
+        }`}>
+          {/* Red Squad */}
+          <div className={mobileMatchTab === 'caster' ? 'hidden lg:block' : 'block'}>
             <h4 className="text-xs font-black text-red-700 uppercase mb-1 flex items-center gap-1.5 font-mpl-title">
               🔴 {draftResult.redTeam.shortName} SQUAD
             </h4>
@@ -1603,58 +1627,58 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               {matchState?.heroes.filter(h => h.side === 'red').map(h => (
                 <div
                   key={h.id}
-                  className={`p-2 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1.5 transition ${
+                  className={`p-1.5 sm:p-2 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1 transition ${
                     h.isDead ? 'opacity-40 grayscale bg-red-50/40' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-red-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border border-red-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
                         <img
                           src={getHeroImageUrl(h.heroId, h.heroName)}
                           alt={h.heroName}
                           className="w-full h-full object-cover"
                         />
                         {h.isDead && (
-                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[9px] text-red-400 font-mono font-bold">
+                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[8px] text-red-400 font-mono font-bold">
                             {Math.ceil(h.respawnTimer)}s
                           </div>
                         )}
                       </div>
 
                       <div>
-                        <div className="font-bold text-gray-900 text-[11px] flex items-center gap-1.5">
+                        <div className="font-bold text-gray-900 text-[10px] sm:text-[11px] flex items-center gap-1">
                           <span>{h.playerName}</span>
                           <img
                             src={getPlayerAvatarUrl(h.playerName, draftResult.redTeam.themeColor)}
                             alt={h.playerName}
-                            className="w-4 h-4 rounded-full border border-gray-300"
+                            className="w-3.5 h-3.5 rounded-full border border-gray-300"
                           />
                         </div>
-                        <div className="text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
+                        <div className="text-[8px] sm:text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="font-mono text-gray-900 font-black text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
-                      <div className="text-[9px] text-gray-500 font-mono font-bold">{h.gold}g</div>
+                      <div className="font-mono text-gray-900 font-black text-[10px] sm:text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
+                      <div className="text-[8px] sm:text-[9px] text-gray-500 font-mono font-bold">{h.gold}g</div>
                     </div>
                   </div>
 
-                  {/* 6 Real MLBB Item Slots Display */}
-                  <div className="flex items-center gap-1 pt-1 border-t border-gray-200">
+                  {/* 6 Real MLBB Item Slots */}
+                  <div className="flex items-center gap-1 pt-0.5 border-t border-gray-200">
                     {[0, 1, 2, 3, 4, 5].map(idx => {
                       const it = h.items && h.items[idx];
                       return (
                         <div
                           key={idx}
-                          className="w-5 h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[10px] overflow-hidden"
+                          className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[9px] sm:text-[10px] overflow-hidden"
                           title={it ? `${it.name} (${it.category})` : 'Slot Kosong'}
                         >
                           {it ? (
                             <span>{it.icon}</span>
                           ) : (
-                            <span className="text-[8px] text-gray-400 font-mono">•</span>
+                            <span className="text-[7px] text-gray-400 font-mono">•</span>
                           )}
                         </div>
                       );
@@ -1665,15 +1689,18 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col pt-2 border-t border-gray-100">
-            <h4 className="text-[11px] font-black text-[#680008] uppercase mb-1.5 font-mpl-title">
+          {/* Caster Feed */}
+          <div className={`flex-1 flex-col pt-2 border-t border-gray-100 ${
+            mobileMatchTab === 'squads' ? 'hidden lg:flex' : 'flex'
+          }`}>
+            <h4 className="text-[10px] sm:text-[11px] font-black text-[#680008] uppercase mb-1.5 font-mpl-title">
               🎙️ Live Caster Feed
             </h4>
-            <div className="flex-1 max-h-[170px] overflow-y-auto space-y-1.5 pr-1 text-[11px]">
+            <div className="flex-1 max-h-[170px] overflow-y-auto space-y-1.5 pr-1 text-[10px] sm:text-[11px]">
               {commentaries.map((c, i) => (
                 <div
                   key={i}
-                  className={`p-2 rounded-xl leading-snug border ${
+                  className={`p-1.5 sm:p-2 rounded-xl leading-snug border ${
                     c.type === 'kill'
                       ? 'bg-red-50 text-red-900 border-red-200 font-bold'
                       : c.type === 'objective'
@@ -1683,7 +1710,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                       : 'bg-gray-50 text-gray-700 border-gray-200'
                   }`}
                 >
-                  <span className="text-[#680008] font-mono font-black text-[9px] mr-1.5">[{c.time}]</span>
+                  <span className="text-[#680008] font-mono font-black text-[8px] sm:text-[9px] mr-1">[{c.time}]</span>
                   <span>{c.text}</span>
                 </div>
               ))}

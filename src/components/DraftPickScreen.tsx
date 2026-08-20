@@ -7,7 +7,7 @@ import { MLBB_HEROES } from '@/lib/data/heroes';
 import { sanitizeInputText, globalRateLimiter } from '@/lib/security';
 import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
 import { audioMgr } from '@/lib/audioManager';
-import { Radio, Search, Lock, Zap, CheckCircle2, ArrowLeftRight, Swords, Sparkles } from 'lucide-react';
+import { Radio, Search, Lock, Zap, CheckCircle2, ArrowLeftRight, Swords, Sparkles, Shield, User } from 'lucide-react';
 
 interface DraftPickScreenProps {
   draftEngine: DraftEngine;
@@ -28,6 +28,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(draftEngine.timer);
   const [swapSourceIdx, setSwapSourceIdx] = useState<number | null>(null);
+  const [mobileTab, setMobileTab] = useState<'pool' | 'blue' | 'red'>('pool');
 
   useEffect(() => {
     draftEngine.onStateChange = () => setTick(t => t + 1);
@@ -109,12 +110,12 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
   const redStats = draftEngine.calculateTeamStats(draftEngine.redPicks);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-4 animate-fadeIn text-gray-900">
+    <main className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4 animate-fadeIn text-gray-900">
       {/* Top Header Bar */}
-      <div className="bg-gradient-to-r from-[#0d1622] via-[#141f2e] to-[#0d1622] px-4 sm:px-6 py-2.5 rounded-2xl border border-white/10 flex flex-wrap justify-between items-center gap-2 mb-3 shadow-xl text-white">
+      <div className="bg-gradient-to-r from-[#0d1622] via-[#141f2e] to-[#0d1622] px-3 sm:px-6 py-2.5 rounded-2xl border border-white/10 flex flex-wrap justify-between items-center gap-2 mb-3 shadow-xl text-white">
         <div className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2 font-mpl-title">
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-full bg-white p-0.5 border border-blue-400/40 flex items-center justify-center overflow-hidden">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white p-0.5 border border-blue-400/40 flex items-center justify-center overflow-hidden">
               <img
                 src={getTeamLogoUrl(draftEngine.blueTeam.tag, draftEngine.blueTeam.themeColor)}
                 alt={draftEngine.blueTeam.tag}
@@ -124,10 +125,10 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
             <span className="text-blue-400">{draftEngine.blueTeam.name}</span>
           </div>
 
-          <span className="text-gray-500 font-mono">VS</span>
+          <span className="text-gray-500 font-mono text-xs">VS</span>
 
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-full bg-white p-0.5 border border-red-400/40 flex items-center justify-center overflow-hidden">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white p-0.5 border border-red-400/40 flex items-center justify-center overflow-hidden">
               <img
                 src={getTeamLogoUrl(draftEngine.redTeam.tag, draftEngine.redTeam.themeColor)}
                 alt={draftEngine.redTeam.tag}
@@ -139,16 +140,16 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
         </div>
 
         {/* Turn Phase & Timer */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="text-right">
-            <div className="text-xs font-black text-white uppercase font-mpl-title">
+            <div className="text-[10px] sm:text-xs font-black text-white uppercase font-mpl-title">
               {draftEngine.isSwapPhase ? 'FASE TUKAR HERO' : currentTurn?.label || 'Selesai'}
             </div>
-            <div className="text-[10px] text-mpl-gold font-mono font-bold">
+            <div className="text-[8px] sm:text-[10px] text-mpl-gold font-mono font-bold">
               {draftEngine.isSwapPhase ? 'HERO SWAP PHASE' : currentTurn?.phaseStage.toUpperCase() || 'FINISH'}
             </div>
           </div>
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black font-mono shadow-lg border border-white/20 ${
+          <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-xs sm:text-sm font-black font-mono shadow-lg border border-white/20 ${
             timeLeft <= 5 ? 'bg-red-600 animate-pulse text-white' : 'bg-gray-800 text-white'
           }`}>
             {timeLeft}s
@@ -160,20 +161,20 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
       {draftEngine.isSwapPhase && (
         <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-black p-3 rounded-2xl shadow-xl mb-3 flex flex-wrap items-center justify-between gap-3 border-2 border-amber-300 animate-pulse">
           <div className="flex items-center gap-2">
-            <ArrowLeftRight className="w-6 h-6 shrink-0" />
+            <ArrowLeftRight className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
             <div>
-              <div className="font-black text-sm font-mpl-title uppercase tracking-wider">
-                🔄 FASE TUKAR HERO (HERO SWAP PHASE) AKTIF!
+              <div className="font-black text-xs sm:text-sm font-mpl-title uppercase tracking-wider">
+                🔄 FASE TUKAR HERO AKTIF!
               </div>
-              <div className="text-xs font-bold">
-                Klik kartu pemain pertama lalu klik pemain kedua untuk <b>menukar hero</b> sesuai role (EXP, Jungle, Mid, Gold, Roam).
+              <div className="text-[11px] sm:text-xs font-bold">
+                Klik kartu pemain pertama lalu klik pemain kedua untuk <b>menukar hero</b> antar role.
               </div>
             </div>
           </div>
 
           <button
             onClick={handleConfirmFinalDraft}
-            className="px-6 py-2 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl shadow-lg transition flex items-center gap-1.5 font-mpl-title uppercase tracking-wider"
+            className="w-full sm:w-auto px-5 py-2 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 font-mpl-title uppercase tracking-wider"
           >
             <Swords className="w-4 h-4 text-mpl-gold" /> Masuk ke Arena Match ({timeLeft}s)
           </button>
@@ -182,39 +183,39 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
 
       {/* Stage Team Comms Intercom Box */}
       {comms && !draftEngine.isSwapPhase && (
-        <div className="bg-gradient-to-r from-[#131d2a] via-[#1a2536] to-[#131d2a] border-2 border-white/10 border-l-4 border-l-mpl-gold p-4 rounded-2xl mb-4 shadow-2xl text-white">
-          <div className="flex justify-between items-center text-[10px] font-black text-mpl-gold uppercase tracking-wider mb-2">
+        <div className="bg-gradient-to-r from-[#131d2a] via-[#1a2536] to-[#131d2a] border-2 border-white/10 border-l-4 border-l-mpl-gold p-3 sm:p-4 rounded-2xl mb-3 shadow-2xl text-white">
+          <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black text-mpl-gold uppercase tracking-wider mb-2">
             <span className="flex items-center gap-1.5 font-mpl-title">
-              <Radio className="w-3.5 h-3.5 animate-pulse text-mpl-gold" /> STAGE TEAM HEADSET COMMS
+              <Radio className="w-3 h-3 animate-pulse text-mpl-gold" /> STAGE TEAM HEADSET COMMS
               {draftEngine.teamConfidenceBoost > 0 && (
                 <span className="bg-green-600/80 text-white px-2 py-0.2 rounded text-[9px] font-extrabold">
-                  +{draftEngine.teamConfidenceBoost}% Team Morale Buff
+                  +{draftEngine.teamConfidenceBoost}% Boost
                 </span>
               )}
             </span>
-            <span className="font-mono text-gray-400">MPL ID STAGE INTERCOM</span>
+            <span className="font-mono text-gray-400">INTERCOM</span>
           </div>
 
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-full bg-gray-800 border-2 border-mpl-gold flex items-center justify-center text-xl shadow-lg shrink-0">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gray-800 border-2 border-mpl-gold flex items-center justify-center text-lg sm:text-xl shadow-lg shrink-0">
               {comms.speaker.avatar}
             </div>
             <div className="flex-1">
-              <div className="text-xs font-black text-white flex items-center gap-2">
+              <div className="text-xs font-black text-white flex items-center gap-1.5">
                 {comms.speaker.name}
-                <span className="text-[10px] bg-white/10 text-gray-300 px-1.5 py-0.2 rounded font-normal">
+                <span className="text-[9px] bg-white/10 text-gray-300 px-1.5 py-0.2 rounded font-normal">
                   {comms.speaker.role}
                 </span>
               </div>
-              <div className="text-xs text-gray-200 mt-1 italic font-medium">"{comms.text}"</div>
+              <div className="text-[11px] sm:text-xs text-gray-200 mt-0.5 italic font-medium">"{comms.text}"</div>
 
               {comms.coachReplyOptions.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5">
                   {comms.coachReplyOptions.map((opt, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleCoachReply(idx)}
-                      className="px-3 py-1.5 rounded-lg bg-[#680008] hover:bg-[#4A0006] text-white text-xs font-bold transition border border-red-700/50 shadow flex items-center gap-1.5"
+                      className="px-2.5 py-1.5 rounded-lg bg-[#680008] hover:bg-[#4A0006] text-white text-[10px] sm:text-xs font-bold transition border border-red-700/50 shadow flex items-center gap-1.5"
                     >
                       <Zap className="w-3 h-3 text-mpl-gold" /> {opt.label}
                     </button>
@@ -226,10 +227,46 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
         </div>
       )}
 
+      {/* Mobile Tab Switcher (< 1024px) */}
+      <div className="lg:hidden flex rounded-xl bg-gray-200 p-1 mb-3 gap-1 text-xs font-bold font-mpl-title">
+        <button
+          onClick={() => setMobileTab('blue')}
+          className={`flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1 ${
+            mobileTab === 'blue'
+              ? 'bg-blue-600 text-white shadow'
+              : 'text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          🔵 Blue Team
+        </button>
+        <button
+          onClick={() => setMobileTab('pool')}
+          className={`flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1 ${
+            mobileTab === 'pool'
+              ? 'bg-[#680008] text-white shadow'
+              : 'text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          ⚔️ Hero Pool
+        </button>
+        <button
+          onClick={() => setMobileTab('red')}
+          className={`flex-1 py-2 rounded-lg transition flex items-center justify-center gap-1 ${
+            mobileTab === 'red'
+              ? 'bg-red-600 text-white shadow'
+              : 'text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          🔴 Red Team
+        </button>
+      </div>
+
       {/* Main 3-Column Draft Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
         {/* Left Side: Blue Team Column */}
-        <div className="lg:col-span-3 bg-white rounded-2xl p-3.5 border-t-4 border-blue-500 border border-gray-200 flex flex-col gap-3 shadow-md">
+        <div className={`lg:col-span-3 bg-white rounded-2xl p-3 sm:p-3.5 border-t-4 border-blue-500 border border-gray-200 flex-col gap-3 shadow-md ${
+          mobileTab !== 'blue' ? 'hidden lg:flex' : 'flex'
+        }`}>
           <div className="flex justify-between items-center">
             <h4 className="text-xs font-black text-blue-600 uppercase font-mpl-title">🔵 Blue Team</h4>
             <span className="text-[10px] text-gray-500 font-mono font-bold">{draftEngine.blueTeam.shortName}</span>
@@ -243,7 +280,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                 return (
                   <div
                     key={idx}
-                    className="h-11 rounded-xl bg-gray-100 border border-gray-300 flex flex-col items-center justify-center text-center p-0.5 overflow-hidden"
+                    className="h-10 sm:h-11 rounded-xl bg-gray-100 border border-gray-300 flex flex-col items-center justify-center text-center p-0.5 overflow-hidden"
                   >
                     {h ? (
                       <div className="w-full h-full relative flex flex-col items-center justify-center">
@@ -283,7 +320,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                   <div
                     key={lane}
                     onClick={() => handlePlayerSlotClick(idx, 'blue')}
-                    className={`p-2 rounded-xl border flex items-center justify-between min-h-[50px] transition cursor-pointer ${
+                    className={`p-2 rounded-xl border flex items-center justify-between min-h-[48px] transition cursor-pointer ${
                       isSelectedForSwap
                         ? 'bg-amber-100 border-2 border-amber-500 shadow-md scale-[1.02]'
                         : hero
@@ -293,7 +330,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       {hero ? (
-                        <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-blue-500 shrink-0 bg-gray-900 relative shadow">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border-2 border-blue-500 shrink-0 bg-gray-900 relative shadow">
                           <img
                             src={getHeroImageUrl(hero.id, hero.name)}
                             alt={hero.name}
@@ -301,14 +338,14 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                           />
                         </div>
                       ) : (
-                        <div className="w-9 h-9 rounded-xl bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-black shrink-0 font-mono">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-black shrink-0 font-mono">
                           P{idx + 1}
                         </div>
                       )}
 
                       <div className="flex flex-col">
                         <span className="text-xs font-black text-gray-900">{hero ? hero.name : `Slot Pick ${idx + 1}`}</span>
-                        <span className="text-[10px] text-gray-500 font-bold">{starter?.name || 'TBD'} • {lane} Lane</span>
+                        <span className="text-[10px] text-gray-500 font-bold">{starter?.name || 'TBD'} • {lane}</span>
                       </div>
                     </div>
 
@@ -340,14 +377,16 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
         </div>
 
         {/* Center: Hero Pool Grid & Pick Preview */}
-        <div className="lg:col-span-6 bg-white rounded-2xl p-4 border border-gray-200 flex flex-col gap-3 shadow-md">
+        <div className={`lg:col-span-6 bg-white rounded-2xl p-3 sm:p-4 border border-gray-200 flex-col gap-3 shadow-md ${
+          mobileTab !== 'pool' ? 'hidden lg:flex' : 'flex'
+        }`}>
           {/* Filters & Search */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {['ALL', 'EXP', 'JUNGLE', 'MID', 'GOLD', 'ROAM', 'ASSASSIN', 'FIGHTER', 'MAGE', 'MARKSMAN', 'TANK', 'SUPPORT'].map(r => (
               <button
                 key={r}
                 onClick={() => setRoleFilter(r)}
-                className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase transition border ${
+                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase transition border ${
                   roleFilter === r
                     ? 'bg-[#680008] text-white border-[#680008] shadow'
                     : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
@@ -364,13 +403,13 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(sanitizeInputText(e.target.value, 20))}
-              placeholder="Cari nama hero (Suyou, Nolan, Ling, Brody, Vexana, Tigreal...)"
+              placeholder="Cari nama hero (Suyou, Nolan, Ling, Beatrix, Tigreal...)"
               className="w-full pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#680008]"
             />
           </div>
 
-          {/* Hero Selection Grid */}
-          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[300px] overflow-y-auto p-1 bg-gray-50 rounded-2xl border border-gray-200">
+          {/* Hero Selection Grid (Touch optimized) */}
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 sm:gap-2 max-h-[320px] overflow-y-auto p-1 bg-gray-50 rounded-2xl border border-gray-200">
             {filteredHeroes.map(hero => {
               const isUnavail = unavailable.includes(hero.id);
               const isSelected = selectedHero?.id === hero.id;
@@ -392,17 +431,17 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                     alt={hero.name}
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-1 pt-3">
-                    <span className="text-[9px] font-black text-white truncate block leading-tight">
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-0.5 sm:p-1 pt-2 sm:pt-3">
+                    <span className="text-[8px] sm:text-[9px] font-black text-white truncate block leading-tight">
                       {hero.name}
                     </span>
-                    <span className="text-[8px] text-amber-300 font-mono block">
+                    <span className="text-[7px] sm:text-[8px] text-amber-300 font-mono block">
                       {hero.lane}
                     </span>
                   </div>
                   {isUnavail && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <Lock className="w-4 h-4 text-red-400" />
+                      <Lock className="w-3.5 h-3.5 text-red-400" />
                     </div>
                   )}
                 </div>
@@ -412,9 +451,9 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
 
           {/* Selected Hero Action Card */}
           {selectedHero && (
-            <div className="bg-gray-50 p-3 rounded-2xl border border-gray-200 flex flex-wrap justify-between items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-amber-400 shadow bg-gray-900 shrink-0">
+            <div className="bg-gray-50 p-2.5 sm:p-3 rounded-2xl border border-gray-200 flex flex-wrap justify-between items-center gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden border-2 border-amber-400 shadow bg-gray-900 shrink-0">
                   <img
                     src={getHeroImageUrl(selectedHero.id, selectedHero.name)}
                     alt={selectedHero.name}
@@ -422,8 +461,8 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                   />
                 </div>
                 <div>
-                  <div className="font-black text-sm text-gray-900 font-mpl-title">{selectedHero.name}</div>
-                  <div className="text-[10px] text-gray-500 font-bold">
+                  <div className="font-black text-xs sm:text-sm text-gray-900 font-mpl-title">{selectedHero.name}</div>
+                  <div className="text-[9px] sm:text-[10px] text-gray-500 font-bold">
                     Role: {selectedHero.role} • Lane: {selectedHero.lane} • Tier: <b className="text-red-600">{selectedHero.tier}</b>
                   </div>
                 </div>
@@ -432,10 +471,10 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               {isUserTurn && !draftEngine.isCompleted && !draftEngine.isSwapPhase && (
                 <button
                   onClick={handleLockIn}
-                  className="px-6 py-2.5 bg-[#680008] hover:bg-[#4A0006] text-white text-xs font-black rounded-xl shadow-xl transition flex items-center gap-1.5 font-mpl-title uppercase tracking-wider animate-bounce"
+                  className="w-full sm:w-auto px-5 py-2 sm:py-2.5 bg-[#680008] hover:bg-[#4A0006] text-white text-xs font-black rounded-xl shadow-xl transition flex items-center justify-center gap-1.5 font-mpl-title uppercase tracking-wider animate-bounce"
                 >
                   <Lock className="w-3.5 h-3.5 text-mpl-gold" />
-                  KUNCI HERO ({currentTurn?.phase.toUpperCase()} {selectedHero.name})
+                  KUNCI {currentTurn?.phase.toUpperCase()} {selectedHero.name}
                 </button>
               )}
             </div>
@@ -443,7 +482,9 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
         </div>
 
         {/* Right Side: Red Team Column */}
-        <div className="lg:col-span-3 bg-white rounded-2xl p-3.5 border-t-4 border-red-500 border border-gray-200 flex flex-col gap-3 shadow-md">
+        <div className={`lg:col-span-3 bg-white rounded-2xl p-3 sm:p-3.5 border-t-4 border-red-500 border border-gray-200 flex-col gap-3 shadow-md ${
+          mobileTab !== 'red' ? 'hidden lg:flex' : 'flex'
+        }`}>
           <div className="flex justify-between items-center">
             <h4 className="text-xs font-black text-red-600 uppercase font-mpl-title">🔴 Red Team</h4>
             <span className="text-[10px] text-gray-500 font-mono font-bold">{draftEngine.redTeam.shortName}</span>
@@ -457,7 +498,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                 return (
                   <div
                     key={idx}
-                    className="h-11 rounded-xl bg-gray-100 border border-gray-300 flex flex-col items-center justify-center text-center p-0.5 overflow-hidden"
+                    className="h-10 sm:h-11 rounded-xl bg-gray-100 border border-gray-300 flex flex-col items-center justify-center text-center p-0.5 overflow-hidden"
                   >
                     {h ? (
                       <div className="w-full h-full relative flex flex-col items-center justify-center">
@@ -497,7 +538,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                   <div
                     key={lane}
                     onClick={() => handlePlayerSlotClick(idx, 'red')}
-                    className={`p-2 rounded-xl border flex items-center justify-between min-h-[50px] transition cursor-pointer ${
+                    className={`p-2 rounded-xl border flex items-center justify-between min-h-[48px] transition cursor-pointer ${
                       isSelectedForSwap
                         ? 'bg-amber-100 border-2 border-amber-500 shadow-md scale-[1.02]'
                         : hero
@@ -507,7 +548,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       {hero ? (
-                        <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-red-500 shrink-0 bg-gray-900 relative shadow">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border-2 border-red-500 shrink-0 bg-gray-900 relative shadow">
                           <img
                             src={getHeroImageUrl(hero.id, hero.name)}
                             alt={hero.name}
@@ -515,14 +556,14 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
                           />
                         </div>
                       ) : (
-                        <div className="w-9 h-9 rounded-xl bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-black shrink-0 font-mono">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-black shrink-0 font-mono">
                           P{idx + 1}
                         </div>
                       )}
 
                       <div className="flex flex-col">
                         <span className="text-xs font-black text-gray-900">{hero ? hero.name : `Slot Pick ${idx + 1}`}</span>
-                        <span className="text-[10px] text-gray-500 font-bold">{starter?.name || 'TBD'} • {lane} Lane</span>
+                        <span className="text-[10px] text-gray-500 font-bold">{starter?.name || 'TBD'} • {lane}</span>
                       </div>
                     </div>
 
