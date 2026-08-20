@@ -170,7 +170,7 @@ export class DraftEngine {
     let suggestedHeroIds: string[] = [];
     let coachReplyOptions: CoachReplyOption[] = [];
 
-    // 1. Assistant Coach Meta & Strategy Analysis
+    // 1. Assistant Coach Meta & Strategy Analysis (1 Clean Message)
     if (current.phase === 'ban') {
       const topBans = available.filter(h => h.tier === 'S+' || h.tier === 'S').slice(0, 2);
       suggestedHeroIds = topBans.map(h => h.id);
@@ -179,7 +179,7 @@ export class DraftEngine {
         speakerName: asstCoach.name,
         speakerRole: 'Tactical Analyst',
         avatarIcon: '📋',
-        message: `Coach, di fase Ban ${current.phaseStage.toUpperCase()} ini, musuh sering mengandalkan ${topBans.map(h => h.name).join(' & ')}. Sebaiknya kita tutup opsi mereka!`,
+        message: `Coach, untuk fase Ban ini, musuh sering mengandalkan ${topBans.map(h => h.name).join(' & ')}. Sebaiknya kita tutup opsi mereka!`,
         suggestedHeroName: topBans[0]?.name,
         suggestedHeroId: topBans[0]?.id
       });
@@ -213,9 +213,9 @@ export class DraftEngine {
         if (!suggestedHeroIds.includes(h.id)) suggestedHeroIds.push(h.id);
       });
 
-      let analystMsg = `Coach, prioritas kita sekarang adalah mengisi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`;
+      let analystMsg = `Coach, giliran kita isi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`;
       if (counterRecommendation) {
-        analystMsg = `💡 COUNTER-PICK DETECTED! Musuh sudah pick ${counterTargetName}. Rekomendasi tajam saya adalah ambil [${counterRecommendation.name}] untuk shut down pergerakan mereka!`;
+        analystMsg = `💡 COUNTER-PICK! Musuh sudah pick ${counterTargetName}. Rekomendasi terbaik: kunci [${counterRecommendation.name}]!`;
       }
 
       squadDiscussion.push({
@@ -227,56 +227,53 @@ export class DraftEngine {
         suggestedHeroName: counterRecommendation?.name || bestPicks[0]?.name,
         suggestedHeroId: counterRecommendation?.id || bestPicks[0]?.id
       });
+
+      // 2. Only the ONE relevant player for this role speaks (No spamming!)
+      const activePlayer = starters.find(p => p.role === nextRole) || starters.find(p => !myPicks.some((_, i) => (this.userSide === 'blue' ? this.blueAssignments : this.redAssignments)[i]?.player?.id === p.id)) || starters[0];
+
+      if (activePlayer) {
+        const playerSignature = available.find(h => activePlayer.signature.includes(h.name) && (h.lane === activePlayer.role || h.secondaryLane === activePlayer.role));
+        const poolHero = available.find(h => h.lane === activePlayer.role || h.secondaryLane === activePlayer.role);
+        const chosenHero = playerSignature || poolHero;
+
+        if (chosenHero && !suggestedHeroIds.includes(chosenHero.id)) {
+          suggestedHeroIds.push(chosenHero.id);
+        }
+
+        let msg = "";
+        if (activePlayer.role === 'EXP') {
+          msg = playerSignature
+            ? `Coach, lepas ${playerSignature.name} ke saya! Saya siap freeze lane dan flank backline musuh!`
+            : `Coach, untuk EXP Lane saya siap tahan frontline tim!`;
+        } else if (activePlayer.role === 'Jungle') {
+          msg = playerSignature
+            ? `Coach, saya pede pake ${playerSignature.name}! Siap amankan Turtle & Lord!`
+            : `Coach, amankan Assassin/Fighter Jungle untuk saya, siap invasi buff!`;
+        } else if (activePlayer.role === 'Mid') {
+          msg = playerSignature
+            ? `Coach, pick-in ${playerSignature.name}! Saya siap kasih damage poke & zoning!`
+            : `Coach, saya siap pick Mage buat backup teamfight!`;
+        } else if (activePlayer.role === 'Gold') {
+          msg = playerSignature
+            ? `Coach, kasih ${playerSignature.name}! Saya siap farming dan gendong late game!`
+            : `Coach, amankan Marksman andalan, saya butuh Roamer cover pas laning!`;
+        } else { // Roam
+          msg = playerSignature
+            ? `Coach, saya pick ${playerSignature.name}! Siap open map di bush dan inisiasi war!`
+            : `Coach, Roamer siap ambil hero CC/Heal buat lindungi carry!`;
+        }
+
+        squadDiscussion.push({
+          id: `p_${activePlayer.id}_${Date.now()}`,
+          speakerName: activePlayer.name,
+          speakerRole: `${activePlayer.role} Lane`,
+          avatarIcon: '🎮',
+          message: msg,
+          suggestedHeroName: chosenHero?.name,
+          suggestedHeroId: chosenHero?.id
+        });
+      }
     }
-
-    // 2. All 5 Players speak according to their role & signature heroes
-    starters.forEach(player => {
-      const isAlreadyPicked = myPicks.some((h, idx) => {
-        const assignment = (this.userSide === 'blue' ? this.blueAssignments : this.redAssignments)[idx];
-        return assignment?.player?.id === player.id;
-      });
-
-      const playerSignature = available.find(h => player.signature.includes(h.name) && (h.lane === player.role || h.secondaryLane === player.role));
-      const poolHero = available.find(h => h.lane === player.role || h.secondaryLane === player.role);
-      const chosenHero = playerSignature || poolHero;
-
-      if (chosenHero && !suggestedHeroIds.includes(chosenHero.id)) {
-        suggestedHeroIds.push(chosenHero.id);
-      }
-
-      let msg = "";
-      if (player.role === 'EXP') {
-        msg = playerSignature
-          ? `Coach, lepas ${playerSignature.name} ke saya! Saya siap freeze lane, cut minion, dan flank backline musuh pas war Lord!`
-          : `Coach, untuk EXP Lane saya siap main hero badan tebal buat tahan frontline tim!`;
-      } else if (player.role === 'Jungle') {
-        msg = playerSignature
-          ? `Coach, saya pede banget pake ${playerSignature.name}! Saya jamin amankan semua Turtle & Retribution objektif Lord!`
-          : `Coach, amankan Assassin/Fighter Jungle untuk saya, siap rotasi invasi buff lawan!`;
-      } else if (player.role === 'Mid') {
-        msg = playerSignature
-          ? `Coach, pick-in ${playerSignature.name}! Saya bisa berikan High Ground defense & zoning AoE magic damage!`
-          : `Coach, saya siap pick Mage poke & CC buat backup invasi Jungler di River!`;
-      } else if (player.role === 'Gold') {
-        msg = playerSignature
-          ? `Coach, kasih saya ${playerSignature.name}! Saya siap farming disiplin dan gendong tim pas masuk late game!`
-          : `Coach, tolong amankan Marksman andalan, saya butuh Roamer cover pas laning!`;
-      } else { // Roam
-        msg = playerSignature
-          ? `Coach, saya mau pick ${playerSignature.name}! Siap open map di bush sungai, sediakan vision, dan inisiasi teamfight!`
-          : `Coach, Roamer siap ambil Tank CC / Support heal buat lindungi carry kita!`;
-      }
-
-      squadDiscussion.push({
-        id: `p_${player.id}_${Date.now()}`,
-        speakerName: player.name,
-        speakerRole: `${player.role} Lane`,
-        avatarIcon: '🎮',
-        message: msg,
-        suggestedHeroName: chosenHero?.name,
-        suggestedHeroId: chosenHero?.id
-      });
-    });
 
     // 3. Coach Tactical Replies
     coachReplyOptions = [
