@@ -43,13 +43,15 @@ export class DraftEngine {
   public teamConfidenceBoost: number = 0;
 
   public turnSequence: DraftTurn[] = [
+    // Phase 1 Ban: Blue Side bans 3, then Red Side bans 3
     { phase: 'ban', side: 'blue', num: 1, label: 'Blue Ban 1', phaseStage: 'ban_p1' },
-    { phase: 'ban', side: 'red',   num: 1, label: 'Red Ban 1', phaseStage: 'ban_p1' },
     { phase: 'ban', side: 'blue', num: 2, label: 'Blue Ban 2', phaseStage: 'ban_p1' },
-    { phase: 'ban', side: 'red',   num: 2, label: 'Red Ban 2', phaseStage: 'ban_p1' },
     { phase: 'ban', side: 'blue', num: 3, label: 'Blue Ban 3', phaseStage: 'ban_p1' },
+    { phase: 'ban', side: 'red',   num: 1, label: 'Red Ban 1', phaseStage: 'ban_p1' },
+    { phase: 'ban', side: 'red',   num: 2, label: 'Red Ban 2', phaseStage: 'ban_p1' },
     { phase: 'ban', side: 'red',   num: 3, label: 'Red Ban 3', phaseStage: 'ban_p1' },
 
+    // Phase 1 Pick: Blue 1, Red 2, Blue 2, Red 1
     { phase: 'pick', side: 'blue', num: 1, label: 'Blue Pick 1', phaseStage: 'pick_p1' },
     { phase: 'pick', side: 'red',   num: 1, label: 'Red Pick 1', phaseStage: 'pick_p1' },
     { phase: 'pick', side: 'red',   num: 2, label: 'Red Pick 2', phaseStage: 'pick_p1' },
@@ -57,11 +59,13 @@ export class DraftEngine {
     { phase: 'pick', side: 'blue', num: 3, label: 'Blue Pick 3', phaseStage: 'pick_p1' },
     { phase: 'pick', side: 'red',   num: 3, label: 'Red Pick 3', phaseStage: 'pick_p1' },
 
+    // Phase 2 Ban: Red 1, Blue 1, Red 1, Blue 1
     { phase: 'ban', side: 'red',   num: 4, label: 'Red Ban 4', phaseStage: 'ban_p2' },
     { phase: 'ban', side: 'blue', num: 4, label: 'Blue Ban 4', phaseStage: 'ban_p2' },
     { phase: 'ban', side: 'red',   num: 5, label: 'Red Ban 5', phaseStage: 'ban_p2' },
     { phase: 'ban', side: 'blue', num: 5, label: 'Blue Ban 5', phaseStage: 'ban_p2' },
 
+    // Phase 2 Pick: Red 1, Blue 2, Red 1
     { phase: 'pick', side: 'red',   num: 4, label: 'Red Pick 4', phaseStage: 'pick_p2' },
     { phase: 'pick', side: 'blue', num: 4, label: 'Blue Pick 4', phaseStage: 'pick_p2' },
     { phase: 'pick', side: 'blue', num: 5, label: 'Blue Pick 5', phaseStage: 'pick_p2' },
