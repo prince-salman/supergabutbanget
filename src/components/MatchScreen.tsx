@@ -6,7 +6,7 @@ import { audioMgr } from '@/lib/audioManager';
 import { globalRateLimiter } from '@/lib/security';
 import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
 import { getHeroPurchasedItems, MLBBItem } from '@/lib/data/items';
-import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
 
 interface MatchScreenProps {
   draftResult: DraftResult;
@@ -112,6 +112,16 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       { id: 'r_red', side: 'red', name: 'Red Buff', x: 540, y: 110 }
     ];
 
+    // River Bushes coordinates for tactical camouflage / ambushes
+    const bushes = [
+      { x: 280, y: 220 },
+      { x: 330, y: 360 },
+      { x: 470, y: 240 },
+      { x: 520, y: 380 },
+      { x: 390, y: 210 },
+      { x: 410, y: 390 }
+    ];
+
     // 2. Initialize 10 Heroes with Dynamic Duel Clash Targets
     const heroes: any[] = [];
     const createHero = (assignment: any, side: 'blue' | 'red') => {
@@ -169,6 +179,9 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         damageDealt: 0,
         damageTaken: 0,
         lastAttackTime: 0,
+        lastUltTime: 0,
+        lastSpellTime: 0,
+        inBush: false,
         battleSpell: lane === 'Jungle' ? 'Retribution' : lane === 'Roam' ? 'Flicker' : lane === 'Mid' ? 'Flameshot' : lane === 'Gold' ? 'Purify' : 'Vengeance'
       };
     };
@@ -244,7 +257,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       const dt = realDt;
 
       if (!engineRef.current?.isPaused && !isGameOver) {
-        // Accelerate game time for authentic pacing (1 real sec = ~3.5 game sec)
         state.gameTime += dt * 3.5;
         minionWaveTimer += dt * 3.5;
         gankTimer += dt * 3.5;
@@ -417,7 +429,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         });
 
-        // 7. Update Heroes (Gold, Level, Items, Combat, Kills & Assists)
+        // 7. Update Heroes (Gold, Level, Items, Ultimate FX, Battle Spells, Bush Ambush)
         heroes.forEach(h => {
           if (h.isDead) {
             h.respawnTimer -= dt * 3.5;
@@ -456,6 +468,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           h.maxHp = 1150 + (h.level * 140) + (h.hero.stats.frontline * 10) + itemHpBonus;
           h.atk = 95 + (h.level * 12) + (h.hero.stats.burst * 1.4) + itemAtkBonus;
 
+          // Feature 3: Check Bush Camouflage / Stealth
+          const nearBush = bushes.some(b => Math.hypot(b.x - h.x, b.y - h.y) < 22);
+          h.inBush = nearBush;
+
           // Find nearest living enemy hero
           const livingEnemies = heroes.filter(e => e.side !== h.side && !e.isDead);
           let nearestEnemy: any = null;
@@ -468,6 +484,42 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               nearestEnemy = e;
             }
           });
+
+          // Feature 3: Surprise Bush Ambush
+          if (h.inBush && nearestEnemy && minEnemyDist < 75) {
+            h.inBush = false;
+            visualEffects.push({ type: 'shockwave', x: h.x, y: h.y, color: '#2ecc71', radius: 35, life: 0.35 });
+            damageNumbers.push({
+              x: h.x,
+              y: h.y - 30,
+              text: '⚡ SURPRISE AMBUSH!',
+              color: '#2ecc71',
+              life: 0.9
+            });
+            logCommentary(`🌿 AMBUSH! ${h.playerName} (${h.heroName}) menyergap dari semak-semak!`, 'highlight');
+          }
+
+          // Feature 2: Battle Spells (Flicker on low HP, Purify/Vengeance/Aegis)
+          if (h.hp < h.maxHp * 0.32 && now - h.lastSpellTime > 16000) {
+            h.lastSpellTime = now;
+            if (h.battleSpell === 'Flicker') {
+              const escapeX = h.side === 'blue' ? h.x - 50 : h.x + 50;
+              const escapeY = h.side === 'blue' ? h.y + 50 : h.y - 50;
+              visualEffects.push({ type: 'flicker_flash', x: h.x, y: h.y, color: '#f1c40f', life: 0.3 });
+              h.x = escapeX;
+              h.y = escapeY;
+              damageNumbers.push({ x: h.x, y: h.y - 25, text: '⚡ FLICKER!', color: '#f1c40f', life: 0.8 });
+              logCommentary(`💨 ${h.playerName} (${h.heroName}) menggunakan FLICKER untuk melarikan diri!`, 'normal');
+            } else if (h.battleSpell === 'Purify') {
+              h.shield = 400;
+              visualEffects.push({ type: 'shockwave', x: h.x, y: h.y, color: '#f1c40f', radius: 30, life: 0.3 });
+              damageNumbers.push({ x: h.x, y: h.y - 25, text: '🌟 PURIFY & SHIELD!', color: '#f1c40f', life: 0.8 });
+            } else if (h.battleSpell === 'Vengeance' || h.battleSpell === 'Aegis') {
+              h.shield = 600;
+              visualEffects.push({ type: 'shockwave', x: h.x, y: h.y, color: '#e74c3c', radius: 32, life: 0.3 });
+              damageNumbers.push({ x: h.x, y: h.y - 25, text: '🛡️ VENGEANCE / AEGIS!', color: '#e74c3c', life: 0.8 });
+            }
+          }
 
           // Dynamic Movement
           if (nearestEnemy && minEnemyDist < 170) {
@@ -489,7 +541,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           }
 
-          // Combat Attack Execution (Melee 60px, Ranged 125px)
+          // Combat Attack Execution
           const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 130 : 60;
           const isEnemy = h.side !== userSide;
           const combatMult = isEnemy && draftResult.difficultyCondition ? draftResult.difficultyCondition.aiCombatMultiplier : 1.0;
@@ -500,6 +552,28 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             const isCrit = Math.random() < 0.30;
             const baseDmg = h.atk + Math.random() * 30;
             const dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
+
+            // Feature 1: Hero Ultimate Skill Cast Animation (Every 10-14s during combat)
+            if (now - h.lastUltTime > 12000) {
+              h.lastUltTime = now;
+              const ultColor = h.hero.role === 'Mage' ? '#9b59b6' : h.hero.role === 'Assassin' ? '#e74c3c' : h.hero.role === 'Tank' ? '#f39c12' : '#3498db';
+              visualEffects.push({
+                type: 'ult_circle',
+                x: nearestEnemy.x,
+                y: nearestEnemy.y,
+                color: ultColor,
+                radius: 45,
+                life: 0.5
+              });
+              damageNumbers.push({
+                x: h.x,
+                y: h.y - 32,
+                text: `💥 [ULTIMATE ${h.heroName.toUpperCase()}]`,
+                color: '#f1c40f',
+                life: 0.9
+              });
+              logCommentary(`💥 ULTIMATE DIBUKA! ${h.playerName} (${h.heroName}) mengaktifkan skill Ultimate pamungkas!`, 'highlight');
+            }
 
             nearestEnemy.hp -= dmg;
             h.damageDealt += dmg;
@@ -579,7 +653,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 nearestEnemy.streak = 0;
               }
 
-              // Check Wipeout
               const deadEnemies = heroes.filter(x => x.side === nearestEnemy.side && x.isDead).length;
               if (deadEnemies >= 5) {
                 logCommentary(`💀 WIPEOUT! Seluruh skuad ${nearestEnemy.side.toUpperCase()} tereliminasi! Base terbuka lebar!`, 'highlight');
@@ -704,11 +777,11 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       ctx.moveTo(220, 80); ctx.lineTo(660, 520); ctx.lineTo(580, 540); ctx.lineTo(140, 100);
       ctx.fill();
 
-      // Bushes
+      // River Bushes
       ctx.fillStyle = '#1b5e20';
-      [[280, 220], [330, 360], [470, 240], [520, 380], [390, 210], [410, 390]].forEach(([bx, by]) => {
+      bushes.forEach(b => {
         ctx.beginPath();
-        ctx.ellipse(bx, by, 22, 12, Math.PI / 4, 0, Math.PI * 2);
+        ctx.ellipse(b.x, b.y, 22, 12, Math.PI / 4, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -795,14 +868,31 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.stroke();
       });
 
-      // Visual Effects (Retri lightning)
+      // Visual Effects (Ultimates, Retribution, Shockwaves, Flash)
       visualEffects.forEach((ve, idx) => {
         ve.life -= dt;
         if (ve.life <= 0) {
           visualEffects.splice(idx, 1);
           return;
         }
-        if (ve.type === 'retri_lightning') {
+        if (ve.type === 'ult_circle') {
+          ctx.strokeStyle = ve.color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(ve.x, ve.y, ve.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (ve.type === 'shockwave') {
+          ctx.strokeStyle = ve.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(ve.x, ve.y, ve.radius * (1 - ve.life), 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (ve.type === 'flicker_flash') {
+          ctx.fillStyle = 'rgba(241, 196, 15, 0.6)';
+          ctx.beginPath();
+          ctx.arc(ve.x, ve.y, 18, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (ve.type === 'retri_lightning') {
           ctx.strokeStyle = '#f1c40f';
           ctx.lineWidth = 4;
           ctx.beginPath();
@@ -818,7 +908,12 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       heroes.forEach(h => {
         if (h.isDead) return;
 
+        // Apply Bush Stealth Alpha
         ctx.save();
+        if (h.inBush) {
+          ctx.globalAlpha = 0.45;
+        }
+
         ctx.beginPath();
         ctx.arc(h.x, h.y, 16, 0, Math.PI * 2);
         ctx.clip();
@@ -832,12 +927,16 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         }
         ctx.restore();
 
+        // Outer Ring
+        ctx.save();
+        if (h.inBush) ctx.globalAlpha = 0.45;
         ctx.beginPath();
         ctx.arc(h.x, h.y, 16, 0, Math.PI * 2);
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = h.side === 'blue' ? '#3498db' : '#e74c3c';
         ctx.stroke();
 
+        // Level Badge
         ctx.fillStyle = '#f1c40f';
         ctx.beginPath();
         ctx.arc(h.x + 12, h.y + 12, 6.5, 0, Math.PI * 2);
@@ -847,11 +946,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.textAlign = 'center';
         ctx.fillText(`${h.level}`, h.x + 12, h.y + 14.5);
 
+        // Name Tag
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`${h.playerName} (${h.heroName})`, h.x, h.y - 20);
 
+        // HP Bar
         ctx.fillStyle = '#111';
         ctx.fillRect(h.x - 18, h.y - 16, 36, 4.5);
         ctx.fillStyle = h.side === 'blue' ? '#2ecc71' : '#e74c3c';
@@ -860,6 +961,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           ctx.fillStyle = '#ecf0f1';
           ctx.fillRect(h.x - 18, h.y - 16, Math.min(36, (h.shield / 500) * 36), 4.5);
         }
+        ctx.restore();
       });
 
       // Damage Numbers
@@ -1003,57 +1105,99 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
   const min = matchState ? Math.floor(matchState.gameTime / 60) : 0;
   const sec = matchState ? Math.floor(matchState.gameTime % 60).toString().padStart(2, '0') : '00';
 
+  const blueGold = matchState?.gold.blue || 1500;
+  const redGold = matchState?.gold.red || 1500;
+  const goldDiff = Math.abs(blueGold - redGold);
+  const isBlueAhead = blueGold >= redGold;
+  const totalGold = blueGold + redGold || 3000;
+  const blueGoldPct = Math.min(85, Math.max(15, (blueGold / totalGold) * 100));
+
   return (
     <main className="max-w-7xl mx-auto px-4 py-4 animate-fadeIn text-gray-900">
       {/* 1. Official MPL Match Scoreboard Bar */}
-      <div className="bg-gradient-to-r from-[#0d1622] via-[#141f2e] to-[#0d1622] px-4 md:px-8 py-3 rounded-2xl border border-white/10 flex items-center justify-between shadow-2xl mb-4 text-white">
-        {/* Blue Team Banner */}
-        <div className="flex items-center gap-3 w-1/3">
-          <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
-            <img
-              src={getTeamLogoUrl(draftResult.blueTeam.tag, draftResult.blueTeam.themeColor)}
-              alt={draftResult.blueTeam.tag}
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div>
-            <div className="text-xs md:text-sm font-black text-blue-400 uppercase tracking-wide truncate font-mpl-title">
-              {draftResult.blueTeam.name}
+      <div className="bg-gradient-to-r from-[#0d1622] via-[#141f2e] to-[#0d1622] px-4 md:px-8 py-3 rounded-2xl border border-white/10 flex flex-col shadow-2xl mb-4 text-white gap-2">
+        <div className="flex items-center justify-between">
+          {/* Blue Team Banner */}
+          <div className="flex items-center gap-3 w-1/3">
+            <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
+              <img
+                src={getTeamLogoUrl(draftResult.blueTeam.tag, draftResult.blueTeam.themeColor)}
+                alt={draftResult.blueTeam.tag}
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="text-[10px] text-gray-400 font-mono">
-              🐢 {matchState?.turtles.blue || 0}/3 • 👑 {matchState?.lords.blue || 0} • 🏰 {matchState?.turrets.blue || 6} • 💰 {((matchState?.gold.blue || 1500) / 1000).toFixed(1)}k
+            <div>
+              <div className="text-xs md:text-sm font-black text-blue-400 uppercase tracking-wide truncate font-mpl-title">
+                {draftResult.blueTeam.name}
+              </div>
+              <div className="text-[10px] text-gray-400 font-mono">
+                🐢 {matchState?.turtles.blue || 0}/3 • 👑 {matchState?.lords.blue || 0} • 🏰 {matchState?.turrets.blue || 6} • 💰 {(blueGold / 1000).toFixed(1)}k
+              </div>
+            </div>
+          </div>
+
+          {/* Center Score & Match Clock */}
+          <div className="flex flex-col items-center justify-center">
+            <div className="flex items-center gap-4 text-2xl md:text-4xl font-black font-mono">
+              <span className="text-blue-400">{matchState?.score.blue || 0}</span>
+              <span className="text-gray-500 text-lg">:</span>
+              <span className="text-red-400">{matchState?.score.red || 0}</span>
+            </div>
+            <div className="text-xs font-mono font-bold text-mpl-gold bg-black/60 px-3 py-0.5 rounded-full border border-white/10 mt-1">
+              ⏱️ {min}:{sec}
+            </div>
+          </div>
+
+          {/* Red Team Banner */}
+          <div className="flex items-center justify-end gap-3 w-1/3 text-right">
+            <div>
+              <div className="text-xs md:text-sm font-black text-red-400 uppercase tracking-wide truncate font-mpl-title">
+                {draftResult.redTeam.name}
+              </div>
+              <div className="text-[10px] text-gray-400 font-mono">
+                💰 {(redGold / 1000).toFixed(1)}k • 🏰 {matchState?.turrets.red || 6} • 👑 {matchState?.lords.red || 0} • 🐢 {matchState?.turtles.red || 0}/3
+              </div>
+            </div>
+            <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
+              <img
+                src={getTeamLogoUrl(draftResult.redTeam.tag, draftResult.redTeam.themeColor)}
+                alt={draftResult.redTeam.tag}
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
         </div>
 
-        {/* Center Score & Match Clock */}
-        <div className="flex flex-col items-center justify-center">
-          <div className="flex items-center gap-4 text-2xl md:text-4xl font-black font-mono">
-            <span className="text-blue-400">{matchState?.score.blue || 0}</span>
-            <span className="text-gray-500 text-lg">:</span>
-            <span className="text-red-400">{matchState?.score.red || 0}</span>
+        {/* Feature 4: Live Broadcast Gold Lead Bar */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono">
+          <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+            <span>{draftResult.blueTeam.shortName}</span>
+            <span>{blueGold.toLocaleString()}g</span>
           </div>
-          <div className="text-xs font-mono font-bold text-mpl-gold bg-black/60 px-3 py-0.5 rounded-full border border-white/10 mt-1">
-            ⏱️ {min}:{sec}
-          </div>
-        </div>
 
-        {/* Red Team Banner */}
-        <div className="flex items-center justify-end gap-3 w-1/3 text-right">
-          <div>
-            <div className="text-xs md:text-sm font-black text-red-400 uppercase tracking-wide truncate font-mpl-title">
-              {draftResult.redTeam.name}
+          <div className="flex-1 mx-4 flex flex-col items-center">
+            <div className="w-full bg-red-950/60 h-2 rounded-full overflow-hidden flex border border-white/10">
+              <div
+                className="bg-blue-500 h-full transition-all duration-300"
+                style={{ width: `${blueGoldPct}%` }}
+              />
+              <div
+                className="bg-red-500 h-full transition-all duration-300"
+                style={{ width: `${100 - blueGoldPct}%` }}
+              />
             </div>
-            <div className="text-[10px] text-gray-400 font-mono">
-              💰 {((matchState?.gold.red || 1500) / 1000).toFixed(1)}k • 🏰 {matchState?.turrets.red || 6} • 👑 {matchState?.lords.red || 0} • 🐢 {matchState?.turtles.red || 0}/3
-            </div>
+            <span className="text-[9px] font-black uppercase text-mpl-gold mt-0.5 tracking-wider">
+              {goldDiff < 400
+                ? '⚖️ GOLD IMBANG'
+                : isBlueAhead
+                ? `🔵 +${(goldDiff / 1000).toFixed(1)}k ${draftResult.blueTeam.shortName} LEAD`
+                : `🔴 +${(goldDiff / 1000).toFixed(1)}k ${draftResult.redTeam.shortName} LEAD`}
+            </span>
           </div>
-          <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
-            <img
-              src={getTeamLogoUrl(draftResult.redTeam.tag, draftResult.redTeam.themeColor)}
-              alt={draftResult.redTeam.tag}
-              className="w-full h-full object-contain"
-            />
+
+          <div className="flex items-center gap-1.5 text-red-400 font-bold">
+            <span>{redGold.toLocaleString()}g</span>
+            <span>{draftResult.redTeam.shortName}</span>
           </div>
         </div>
       </div>
