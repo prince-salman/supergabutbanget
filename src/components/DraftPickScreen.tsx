@@ -167,6 +167,36 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
         </div>
       </div>
 
+      {/* Official 20-Step 10-Ban Draft Flow Indicator */}
+      <div className="bg-[#0f1926] p-2 rounded-2xl border border-white/10 mb-3 shadow-md overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 sm:gap-1.5 min-w-[700px]">
+          {draftEngine.turnSequence.map((t, idx) => {
+            const isCurrent = idx === draftEngine.turnIndex && !draftEngine.isSwapPhase;
+            const isPast = idx < draftEngine.turnIndex || draftEngine.isSwapPhase;
+            const isBlue = t.side === 'blue';
+            const isBan = t.phase === 'ban';
+
+            return (
+              <div
+                key={idx}
+                className={`flex-1 px-1 py-1 rounded-lg text-center text-[8px] sm:text-[9px] font-mono font-bold transition flex flex-col items-center justify-center ${
+                  isCurrent
+                    ? 'bg-amber-400 text-black ring-2 ring-amber-300 font-black scale-105 shadow-md animate-pulse'
+                    : isPast
+                    ? 'bg-black/50 text-gray-500 opacity-60'
+                    : isBlue
+                    ? isBan ? 'bg-blue-950/80 text-blue-300 border border-blue-800/40' : 'bg-blue-900/60 text-blue-200 border border-blue-700/50'
+                    : isBan ? 'bg-red-950/80 text-red-300 border border-red-800/40' : 'bg-red-900/60 text-red-200 border border-red-700/50'
+                }`}
+                title={t.label}
+              >
+                <span>{isBlue ? '🔵' : '🔴'} {isBan ? `B${t.num}` : `P${t.num}`}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* SWAP PHASE BANNER */}
       {draftEngine.isSwapPhase && (
         <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-black p-3 rounded-2xl shadow-xl mb-3 flex flex-wrap items-center justify-between gap-3 border-2 border-amber-300 animate-pulse">
