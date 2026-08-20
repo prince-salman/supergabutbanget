@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Hero, DraftResult, HeroClass, LaneRole } from '@/types';
+import { Hero, DraftResult, HeroClass, LaneRole, SquadDiscussionEntry } from '@/types';
 import { DraftEngine } from '@/lib/draftEngine';
 import { MLBB_HEROES } from '@/lib/data/heroes';
 import { sanitizeInputText, globalRateLimiter } from '@/lib/security';
 import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
 import { audioMgr } from '@/lib/audioManager';
-import { Radio, Search, Lock, Zap, CheckCircle2, ArrowLeftRight, Swords, Sparkles, Shield, User } from 'lucide-react';
+import { Radio, Search, Lock, Zap, CheckCircle2, ArrowLeftRight, Swords, Sparkles, Shield, User, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DraftPickScreenProps {
   draftEngine: DraftEngine;
@@ -28,7 +28,8 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(draftEngine.timer);
   const [swapSourceIdx, setSwapSourceIdx] = useState<number | null>(null);
-  const [mobileTab, setMobileTab] = useState<'pool' | 'blue' | 'red'>('pool');
+  const [mobileTab, setMobileTab] = useState<'pool' | 'blue' | 'red' | 'comms'>('pool');
+  const [isCommsExpanded, setIsCommsExpanded] = useState<boolean>(true);
 
   useEffect(() => {
     draftEngine.onStateChange = () => setTick(t => t + 1);
@@ -84,6 +85,15 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
     }
     audioMgr.playCommsBeep();
     setTick(t => t + 1);
+  };
+
+  const handleQuickPickHeroById = (heroId?: string) => {
+    if (!heroId) return;
+    const hero = MLBB_HEROES.find(h => h.id === heroId);
+    if (hero && !unavailable.includes(hero.id)) {
+      setSelectedHero(hero);
+      audioMgr.playCommsBeep();
+    }
   };
 
   const handlePlayerSlotClick = (idx: number, side: 'blue' | 'red') => {
@@ -181,49 +191,92 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
         </div>
       )}
 
-      {/* Stage Team Comms Intercom Box */}
+      {/* LIVE INTERACTIVE SQUAD DISCUSSION BOX (All 5 Players + Assistant Coach & Analyst Active Chat) */}
       {comms && !draftEngine.isSwapPhase && (
-        <div className="bg-gradient-to-r from-[#131d2a] via-[#1a2536] to-[#131d2a] border-2 border-white/10 border-l-4 border-l-mpl-gold p-3 sm:p-4 rounded-2xl mb-3 shadow-2xl text-white">
-          <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black text-mpl-gold uppercase tracking-wider mb-2">
+        <div className="bg-gradient-to-r from-[#111926] via-[#172233] to-[#111926] border-2 border-white/10 border-l-4 border-l-mpl-gold p-3 sm:p-4 rounded-2xl mb-3 shadow-2xl text-white">
+          <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-black text-mpl-gold uppercase tracking-wider mb-2">
             <span className="flex items-center gap-1.5 font-mpl-title">
-              <Radio className="w-3 h-3 animate-pulse text-mpl-gold" /> STAGE TEAM HEADSET COMMS
+              <Radio className="w-3.5 h-3.5 animate-pulse text-mpl-gold" />
+              🎙️ DISKUSI DRAFT TIM (5 PLAYER & ASISTEN PELATIH)
               {draftEngine.teamConfidenceBoost > 0 && (
-                <span className="bg-green-600/80 text-white px-2 py-0.2 rounded text-[9px] font-extrabold">
-                  +{draftEngine.teamConfidenceBoost}% Boost
+                <span className="bg-green-600 text-white px-2 py-0.2 rounded text-[9px] font-extrabold shadow">
+                  +{draftEngine.teamConfidenceBoost}% Team Chemistry
                 </span>
               )}
             </span>
-            <span className="font-mono text-gray-400">INTERCOM</span>
+
+            <button
+              onClick={() => setIsCommsExpanded(!isCommsExpanded)}
+              className="text-gray-300 hover:text-white flex items-center gap-1 text-[10px] font-mono"
+            >
+              {isCommsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {isCommsExpanded ? 'Sembunyikan' : 'Tampilkan Diskusi'}
+            </button>
           </div>
 
-          <div className="flex items-start gap-2 sm:gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gray-800 border-2 border-mpl-gold flex items-center justify-center text-lg sm:text-xl shadow-lg shrink-0">
-              {comms.speaker.avatar}
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-black text-white flex items-center gap-1.5">
-                {comms.speaker.name}
-                <span className="text-[9px] bg-white/10 text-gray-300 px-1.5 py-0.2 rounded font-normal">
-                  {comms.speaker.role}
-                </span>
-              </div>
-              <div className="text-[11px] sm:text-xs text-gray-200 mt-0.5 italic font-medium">"{comms.text}"</div>
+          {isCommsExpanded && (
+            <div className="flex flex-col gap-2">
+              {/* Discussion Chat Feed */}
+              <div className="max-h-[190px] overflow-y-auto space-y-1.5 pr-1 bg-black/40 p-2.5 rounded-xl border border-white/5">
+                {comms.squadDiscussion?.map((entry: SquadDiscussionEntry) => (
+                  <div
+                    key={entry.id}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-start gap-2.5 transition"
+                  >
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-800 border border-mpl-gold flex items-center justify-center text-sm shrink-0 shadow">
+                      {entry.avatarIcon}
+                    </div>
 
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-black text-[11px] sm:text-xs text-white">
+                          {entry.speakerName}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-[#680008] text-white">
+                          {entry.speakerRole}
+                        </span>
+
+                        {entry.suggestedHeroName && (
+                          <button
+                            onClick={() => handleQuickPickHeroById(entry.suggestedHeroId)}
+                            className="text-[8px] sm:text-[9px] px-2 py-0.2 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/50 font-bold ml-auto transition flex items-center gap-1"
+                            title="Klik untuk memilih hero ini"
+                          >
+                            <Sparkles className="w-2.5 h-2.5" /> Pilih {entry.suggestedHeroName}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="text-[10px] sm:text-[11px] text-gray-200 mt-0.5 leading-snug">
+                        "{entry.message}"
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Head Coach Interactive Response Options */}
               {comms.coachReplyOptions.length > 0 && (
-                <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5">
-                  {comms.coachReplyOptions.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleCoachReply(idx)}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#680008] hover:bg-[#4A0006] text-white text-[10px] sm:text-xs font-bold transition border border-red-700/50 shadow flex items-center gap-1.5"
-                    >
-                      <Zap className="w-3 h-3 text-mpl-gold" /> {opt.label}
-                    </button>
-                  ))}
+                <div className="pt-2 border-t border-white/10 flex flex-col gap-1.5">
+                  <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider font-mono">
+                    💬 PILIH INSTRUKSI HEAD COACH ({coachName}):
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                    {comms.coachReplyOptions.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleCoachReply(idx)}
+                        className="px-2.5 py-2 rounded-xl bg-[#680008] hover:bg-[#85000a] text-white text-[10px] sm:text-[11px] font-bold transition border border-red-500/40 shadow-md flex items-center gap-1.5 text-left"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-mpl-gold shrink-0" />
+                        <span className="line-clamp-2">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -237,7 +290,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               : 'text-gray-700 hover:bg-gray-300'
           }`}
         >
-          🔵 Blue Team
+          🔵 Tim Biru
         </button>
         <button
           onClick={() => setMobileTab('pool')}
@@ -257,7 +310,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               : 'text-gray-700 hover:bg-gray-300'
           }`}
         >
-          🔴 Red Team
+          🔴 Tim Merah
         </button>
       </div>
 

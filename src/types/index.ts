@@ -103,11 +103,23 @@ export interface DraftCommsSpeaker {
   avatar: string;
 }
 
+export interface SquadDiscussionEntry {
+  id: string;
+  speakerName: string;
+  speakerRole: string;
+  avatarIcon: string;
+  message: string;
+  suggestedHeroName?: string;
+  suggestedHeroId?: string;
+  isHeadCoach?: boolean;
+}
+
 export interface DraftCommsMessage {
   speaker: DraftCommsSpeaker;
   text: string;
   suggestedHeroIds: string[];
   coachReplyOptions: CoachReplyOption[];
+  squadDiscussion?: SquadDiscussionEntry[];
 }
 
 export interface DraftTurn {

@@ -4,6 +4,7 @@ import {
   DraftTurn, 
   DraftCommsMessage, 
   DraftCommsSpeaker,
+  SquadDiscussionEntry,
   CoachReplyOption, 
   DraftResult, 
   HeroAssignment, 
@@ -151,95 +152,128 @@ export class DraftEngine {
     const enemyPicks = this.userSide === 'blue' ? this.redPicks : this.bluePicks;
 
     const asstCoach = userTeam.staff?.assistantCoach || { name: "Coach Asisten", role: "Tactical Analyst", personality: "Analitis" };
-    const starterPlayers = userTeam.roster.slice(0, 5);
-
-    let speaker: DraftCommsSpeaker = { name: asstCoach.name, role: asstCoach.role, type: 'assistant', avatar: '📋' };
-    let text = "";
-    let suggestedHeroIds: string[] = [];
-    let coachReplyOptions: CoachReplyOption[] = [];
+    const starters = userTeam.roster.slice(0, 5);
 
     const unavail = this.getAllUnavailableHeroIds();
     const available = MLBB_HEROES.filter(h => !unavail.includes(h.id));
 
+    const squadDiscussion: SquadDiscussionEntry[] = [];
+    let suggestedHeroIds: string[] = [];
+    let coachReplyOptions: CoachReplyOption[] = [];
+
+    // 1. Assistant Coach Meta & Strategy Analysis
     if (current.phase === 'ban') {
-      if (current.phaseStage === 'ban_p1') {
-        speaker = { name: asstCoach.name, role: asstCoach.role, type: 'assistant', avatar: '📋' };
-        const tierSPlus = available.filter(h => h.tier === 'S+');
-        suggestedHeroIds = tierSPlus.slice(0, 2).map(h => h.id);
-        const heroNames = tierSPlus.slice(0, 2).map(h => h.name).join(' atau ');
-        
-        text = `Coach, di fase Ban 1 ini kita harus waspadai assassin/mage power pick lawan. Saya sarankan ban ${heroNames || 'Suyou / Zhuxin'} agar rotasi mereka terganggu!`;
-        coachReplyOptions = [
-          { label: `🎯 "Setuju Asisten, kita tutup opsi hero itu!"`, effect: 'suggest', heroId: suggestedHeroIds[0] },
-          { label: `🛡️ "Saya lebih prioritaskan ban counter strategi kita."`, effect: 'morale' }
-        ];
-      } else {
-        speaker = { name: asstCoach.name, role: asstCoach.role, type: 'assistant', avatar: '📊' };
-        const enemyNeeded = this.getNeededLanes(enemyPicks);
-        const targetBans = available.filter(h => enemyNeeded.includes(h.lane));
-        suggestedHeroIds = targetBans.slice(0, 2).map(h => h.id);
-        const targetLane = enemyNeeded[0] || 'Gold';
-
-        text = `Coach, ${enemyTeam.shortName} belum ambil hero ${targetLane} Lane! Mending di Phase 2 Ban ini kita habisi opsi ${targetLane} terbaik mereka!`;
-        coachReplyOptions = [
-          { label: `🎯 "Bagus analisanya, kita ban ${targetLane} andalan mereka!"`, effect: 'suggest', heroId: suggestedHeroIds[0] },
-          { label: `⚡ "Fokus ban hero yang bisa ganggu kontes Lord nanti!"`, effect: 'morale' }
-        ];
-      }
+      const topBans = available.filter(h => h.tier === 'S+' || h.tier === 'S').slice(0, 2);
+      suggestedHeroIds = topBans.map(h => h.id);
+      squadDiscussion.push({
+        id: `asst_${Date.now()}`,
+        speakerName: asstCoach.name,
+        speakerRole: 'Tactical Analyst',
+        avatarIcon: '📋',
+        message: `Coach, di fase Ban ${current.phaseStage.toUpperCase()} ini, musuh sering mengandalkan ${topBans.map(h => h.name).join(' & ')}. Sebaiknya kita tutup opsi mereka!`,
+        suggestedHeroName: topBans[0]?.name,
+        suggestedHeroId: topBans[0]?.id
+      });
     } else {
-      const neededLanes = this.getNeededLanes(myPicks);
-      const activePlayer = starterPlayers.find(p => neededLanes.includes(p.role)) || starterPlayers.find(p => p.role === neededLanes[0]) || starterPlayers[0];
-
-      if (Math.random() > 0.45 && activePlayer) {
-        speaker = { name: activePlayer.name, role: `${activePlayer.role} Lane`, type: 'player', avatar: '🎮' };
-        
-        // Find signature hero matching the needed lane
-        const signatureHero = available.find(h => activePlayer.signature.includes(h.name) && (h.lane === activePlayer.role || h.secondaryLane === activePlayer.role));
-        if (signatureHero) {
-          suggestedHeroIds = [signatureHero.id];
-          text = `Coach, lepas ${signatureHero.name} ke saya untuk ${activePlayer.role} Lane! Saya sangat percaya diri bisa bantai laning dan teamfight lawan!`;
-          coachReplyOptions = [
-            { label: `🔥 "Gunakan ${signatureHero.name} kamu, kuasai ${activePlayer.role} Lane!"`, effect: 'suggest', heroId: signatureHero.id, confidence: 15 },
-            { label: `⚖️ "Tahan dulu, kita analisa komposisi tim secara keseluruhan."`, effect: 'morale', confidence: -5 }
-          ];
-        } else {
-          const poolHero = available.find(h => h.lane === activePlayer.role);
-          if (poolHero) suggestedHeroIds = [poolHero.id];
-          text = `Coach, untuk posisi ${activePlayer.role} Lane kita, hero apa instruksi Coach? Saya siap jalankan gameplay apapun!`;
-          coachReplyOptions = [
-            { label: `💪 "Main percaya diri dan disiplin kuasai lane kamu!"`, effect: 'morale', confidence: 10 },
-            { label: `🛡️ "Fokus rotasi objektif dan backup kawan satu tim!"`, effect: 'morale', confidence: 10 }
-          ];
-        }
-      } else {
-        speaker = { name: asstCoach.name, role: asstCoach.role, type: 'assistant', avatar: '💡' };
-        const myStats = this.calculateTeamStats(myPicks);
-        const nextNeededRole = neededLanes[0] || 'EXP';
-        let recReason = `karena kita masih butuh ${nextNeededRole} Laner`;
-        let recHeroes = available.filter(h => (h.lane === nextNeededRole || h.secondaryLane === nextNeededRole) && (h.tier === 'S+' || h.tier === 'S'));
-        
-        if (recHeroes.length === 0) {
-          recHeroes = available.filter(h => h.lane === nextNeededRole || h.secondaryLane === nextNeededRole);
-        }
-
-        if (myStats.frontline < 50 && (nextNeededRole === 'EXP' || nextNeededRole === 'Roam')) {
-          recReason = `untuk memperkuat pertahanan garis depan ${nextNeededRole} Lane kita`;
-        } else if (myStats.cc < 50 && nextNeededRole === 'Roam') {
-          recReason = `agar Roamer kita punya inisiasi Crowd Control kuat`;
-        }
-
-        suggestedHeroIds = recHeroes.slice(0, 2).map(h => h.id);
-        const heroNames = recHeroes.slice(0, 2).map(h => h.name).join(' / ');
-
-        text = `Coach, kita butuh pick hero ${nextNeededRole} (${recReason}). Rekomendasi saya ambil ${heroNames || 'hero prioritas'} sekarang!`;
-        coachReplyOptions = [
-          { label: `✅ "Instruksi bagus, mari kita kunci saran tersebut!"`, effect: 'suggest', heroId: suggestedHeroIds[0] },
-          { label: `🧠 "Saya ada strategi khusus, tetap tenang."`, effect: 'morale' }
-        ];
-      }
+      const needed = this.getNeededLanes(myPicks);
+      const nextRole = needed[0] || 'Jungle';
+      const bestPicks = available.filter(h => (h.lane === nextRole || h.secondaryLane === nextRole) && (h.tier === 'S+' || h.tier === 'S')).slice(0, 2);
+      suggestedHeroIds = bestPicks.map(h => h.id);
+      squadDiscussion.push({
+        id: `asst_${Date.now()}`,
+        speakerName: asstCoach.name,
+        speakerRole: 'Tactical Analyst',
+        avatarIcon: '💡',
+        message: `Coach, prioritas kita sekarang adalah mengisi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`,
+        suggestedHeroName: bestPicks[0]?.name,
+        suggestedHeroId: bestPicks[0]?.id
+      });
     }
 
-    this.currentComms = { speaker, text, suggestedHeroIds, coachReplyOptions };
+    // 2. All 5 Players speak according to their role & signature heroes
+    starters.forEach(player => {
+      const isAlreadyPicked = myPicks.some((h, idx) => {
+        const assignment = (this.userSide === 'blue' ? this.blueAssignments : this.redAssignments)[idx];
+        return assignment?.player?.id === player.id;
+      });
+
+      const playerSignature = available.find(h => player.signature.includes(h.name) && (h.lane === player.role || h.secondaryLane === player.role));
+      const poolHero = available.find(h => h.lane === player.role || h.secondaryLane === player.role);
+      const chosenHero = playerSignature || poolHero;
+
+      if (chosenHero && !suggestedHeroIds.includes(chosenHero.id)) {
+        suggestedHeroIds.push(chosenHero.id);
+      }
+
+      let msg = "";
+      if (player.role === 'EXP') {
+        msg = playerSignature
+          ? `Coach, lepas ${playerSignature.name} ke saya! Saya siap freeze lane, cut minion, dan flank backline musuh pas war Lord!`
+          : `Coach, untuk EXP Lane saya siap main hero badan tebal buat tahan frontline tim!`;
+      } else if (player.role === 'Jungle') {
+        msg = playerSignature
+          ? `Coach, saya pede banget pake ${playerSignature.name}! Saya jamin amankan semua Turtle & Retribution objektif Lord!`
+          : `Coach, amankan Assassin/Fighter Jungle untuk saya, siap rotasi invasi buff lawan!`;
+      } else if (player.role === 'Mid') {
+        msg = playerSignature
+          ? `Coach, pick-in ${playerSignature.name}! Saya bisa berikan High Ground defense & zoning AoE magic damage!`
+          : `Coach, saya siap pick Mage poke & CC buat backup invasi Jungler di River!`;
+      } else if (player.role === 'Gold') {
+        msg = playerSignature
+          ? `Coach, kasih saya ${playerSignature.name}! Saya siap farming disiplin dan gendong tim pas masuk late game!`
+          : `Coach, tolong amankan Marksman andalan, saya butuh Roamer cover pas laning!`;
+      } else { // Roam
+        msg = playerSignature
+          ? `Coach, saya mau pick ${playerSignature.name}! Siap open map di bush sungai, sediakan vision, dan inisiasi teamfight!`
+          : `Coach, Roamer siap ambil Tank CC / Support heal buat lindungi carry kita!`;
+      }
+
+      squadDiscussion.push({
+        id: `p_${player.id}_${Date.now()}`,
+        speakerName: player.name,
+        speakerRole: `${player.role} Lane`,
+        avatarIcon: '🎮',
+        message: msg,
+        suggestedHeroName: chosenHero?.name,
+        suggestedHeroId: chosenHero?.id
+      });
+    });
+
+    // 3. Coach Tactical Replies
+    coachReplyOptions = [
+      {
+        label: `🔥 "Gunakan hero andalan kalian! Main agresif & percaya diri!"`,
+        effect: 'morale',
+        confidence: 15
+      },
+      {
+        label: `🎯 "Fokus counter-pick komposisi musuh, ikuti arahan analis!"`,
+        effect: 'suggest',
+        heroId: suggestedHeroIds[0],
+        confidence: 10
+      },
+      {
+        label: `🛡️ "Disiplin objektif Turtle/Lord, jangan overcommit war!"`,
+        effect: 'morale',
+        confidence: 10
+      }
+    ];
+
+    const speaker: DraftCommsSpeaker = {
+      name: `${userTeam.shortName} SQUAD DISCUSSION`,
+      role: 'Intercom 5-Player & Analyst',
+      type: 'assistant',
+      avatar: '🎙️'
+    };
+
+    this.currentComms = {
+      speaker,
+      text: squadDiscussion[0]?.message || 'Diskusi draft aktif.',
+      suggestedHeroIds,
+      coachReplyOptions,
+      squadDiscussion
+    };
+
     this.highlightedHeroIds = suggestedHeroIds;
     this.commsMessages.unshift(this.currentComms);
     if (this.commsMessages.length > 20) this.commsMessages.pop();
