@@ -105,12 +105,12 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       { id: 'r_b2', side: 'red', lane: 'bot', type: 'inner', x: 670, y: 260, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false }
     ];
 
-    // Jungle Buff Camps
+    // Jungle Buff Camps with realistic HP and Respawn Timers
     const jungleCamps = [
-      { id: 'b_blue', side: 'blue', name: 'Blue Buff', x: 190, y: 380 },
-      { id: 'b_red', side: 'blue', name: 'Red Buff', x: 260, y: 490 },
-      { id: 'r_blue', side: 'red', name: 'Blue Buff', x: 610, y: 220 },
-      { id: 'r_red', side: 'red', name: 'Red Buff', x: 540, y: 110 }
+      { id: 'b_blue', side: 'blue', type: 'blue', name: 'Blue Golem', x: 190, y: 380, hp: 1800, maxHp: 1800, alive: true, respawnTimer: 0 },
+      { id: 'b_red', side: 'blue', type: 'red', name: 'Red Fiend', x: 260, y: 490, hp: 1800, maxHp: 1800, alive: true, respawnTimer: 0 },
+      { id: 'r_blue', side: 'red', type: 'blue', name: 'Blue Golem', x: 610, y: 220, hp: 1800, maxHp: 1800, alive: true, respawnTimer: 0 },
+      { id: 'r_red', side: 'red', type: 'red', name: 'Red Fiend', x: 540, y: 110, hp: 1800, maxHp: 1800, alive: true, respawnTimer: 0 }
     ];
 
     // River Bushes
@@ -141,7 +141,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       } else if (lane === 'Mid') {
         targetPos = isBlue ? { x: 385, y: 315 } : { x: 415, y: 285 };
       } else if (lane === 'Jungle') {
-        targetPos = isBlue ? { x: 240, y: 360 } : { x: 560, y: 240 };
+        // Start by farming Blue Buff / Red Buff
+        targetPos = isBlue ? { x: 190, y: 380 } : { x: 610, y: 220 };
       } else { // Roam
         targetPos = isBlue ? { x: 365, y: 335 } : { x: 435, y: 265 };
       }
@@ -183,8 +184,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         lastUltTime: 0,
         lastSpellTime: 0,
         inBush: false,
-        hasBlueBuff: lane === 'Jungle',
-        hasRedBuff: lane === 'Jungle',
+        hasBlueBuff: false,
+        hasRedBuff: false,
+        isRecalling: false,
+        recallTimer: 0,
         buffAuraAngle: Math.random() * Math.PI * 2,
         ccStatus: null as 'stunned' | 'airborne' | 'frozen' | null,
         ccTimer: 0,
@@ -196,7 +199,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         frozenTimer: 0,
         wonActive: false,
         wonTimer: 0,
-        battleSpell: lane === 'Jungle' ? 'Retribution' : lane === 'Roam' ? 'Flicker' : lane === 'Mid' ? 'Flameshot' : lane === 'Gold' ? 'Purify' : 'Vengeance'
+        battleSpell: assignment.hero.role === 'Marksman' ? 'Flicker' : assignment.hero.role === 'Mage' ? 'Flicker' : assignment.hero.role === 'Tank' ? 'Vengeance' : assignment.hero.role === 'Assassin' ? 'Retribution' : 'Purify'
       };
     };
 
@@ -457,7 +460,19 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         });
 
-        // 7. Update Heroes (Gold, Items, CC, Buff Aura, Active Legendary Items, Combat)
+        // Update Jungle Camps respawn
+        jungleCamps.forEach(camp => {
+          if (!camp.alive) {
+            camp.respawnTimer -= dt * 3.5;
+            if (camp.respawnTimer <= 0) {
+              camp.alive = true;
+              camp.hp = camp.maxHp;
+              logCommentary(`🌲 ${camp.name} ${camp.side.toUpperCase()} telah respawn di Jungle!`, 'normal');
+            }
+          }
+        });
+
+        // 7. Update Heroes (Gold, Items, CC, Buff Aura, Active Legendary Items, Combat, Recall, Buff Farming)
         heroes.forEach(h => {
           // Immortality Revive handling
           if (h.isReviving) {
@@ -502,6 +517,23 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             return;
           }
 
+          // Recall handling
+          if (h.isRecalling) {
+            h.recallTimer -= dt;
+            if (h.recallTimer <= 0) {
+              h.isRecalling = false;
+              h.x = h.baseX;
+              h.y = h.baseY;
+              h.hp = h.maxHp;
+              h.shield = 300;
+              damageNumbers.push({ x: h.x, y: h.y - 28, text: '🛡️ RECALL COMPLETE', color: '#00cec9', life: 1.0 });
+              logCommentary(`💨 ${h.playerName} (${h.heroName}) selesai RECALL ke Base & siap kembali ke lane!`, 'normal');
+              h.targetX = h.laneTarget.x;
+              h.targetY = h.laneTarget.y;
+            }
+            return;
+          }
+
           // Buff Aura rotation
           h.buffAuraAngle = (h.buffAuraAngle || 0) + 3.5 * dt;
 
@@ -523,7 +555,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           const purchasedItems = getHeroPurchasedItems(h.hero.role, h.gold);
           if (purchasedItems.length > h.items.length) {
             const newItem = purchasedItems[purchasedItems.length - 1];
-            logCommentary(`🛍️ ${h.playerName} (${h.heroName}) membeli item [${newItem.icon} ${newItem.name}]!`, 'normal');
+            logCommentary(`🛍️ ${h.playerName} (${h.heroName}) membeli item [${newItem.name}]!`, 'normal');
           }
           h.items = purchasedItems;
 
@@ -556,6 +588,78 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               nearestEnemy = e;
             }
           });
+
+          // Smart Recall on low HP (<28%) if not in direct combat
+          if (h.hp < h.maxHp * 0.28 && !h.isRecalling && (!nearestEnemy || minEnemyDist > 85) && now - h.lastAttackTime > 2500) {
+            h.isRecalling = true;
+            h.recallTimer = 2.5;
+            damageNumbers.push({ x: h.x, y: h.y - 25, text: '🛡️ RECALLING...', color: '#00cec9', life: 0.8 });
+            logCommentary(`💨 ${h.playerName} (${h.heroName}) mundur ke area aman & RECALL ke Base!`, 'normal');
+            return;
+          }
+
+          // Jungler Buff Farming: Prioritize alive jungle camps before ganking
+          if (h.lane === 'Jungle') {
+            const teamBuffs = jungleCamps.filter(c => c.side === h.side && c.alive);
+            if (teamBuffs.length > 0 && (!nearestEnemy || minEnemyDist > 140) && state.objective.status !== 'alive') {
+              const targetBuff = teamBuffs[0];
+              h.targetX = targetBuff.x;
+              h.targetY = targetBuff.y;
+
+              const distToCamp = Math.hypot(targetBuff.x - h.x, targetBuff.y - h.y);
+              if (distToCamp < 45 && now - h.lastAttackTime > 450) {
+                h.lastAttackTime = now;
+                targetBuff.hp -= (h.atk * 1.6);
+                projectiles.push({
+                  x: h.x,
+                  y: h.y,
+                  targetX: targetBuff.x,
+                  targetY: targetBuff.y,
+                  color: targetBuff.type === 'blue' ? '#2980b9' : '#e74c3c',
+                  type: 'slash',
+                  life: 0.2
+                });
+
+                if (targetBuff.hp <= 0) {
+                  targetBuff.hp = 0;
+                  targetBuff.alive = false;
+                  targetBuff.respawnTimer = 60;
+                  if (targetBuff.type === 'blue') h.hasBlueBuff = true;
+                  if (targetBuff.type === 'red') h.hasRedBuff = true;
+                  h.gold += 240;
+                  state.gold[h.side as 'blue' | 'red'] += 240;
+                  visualEffects.push({ type: 'shockwave', x: targetBuff.x, y: targetBuff.y, color: targetBuff.type === 'blue' ? '#3498db' : '#e74c3c', radius: 35, life: 0.35 });
+                  damageNumbers.push({ x: h.x, y: h.y - 25, text: `✨ ${targetBuff.name.toUpperCase()} SECURED! (+240g)`, color: '#f1c40f', life: 1.0 });
+                  logCommentary(`🌲 ${h.playerName} (${h.heroName}) menumbangkan ${targetBuff.name} & mengamankan Jungle Buff!`, 'highlight');
+                  h.targetX = h.laneTarget.x;
+                  h.targetY = h.laneTarget.y;
+                }
+              }
+            }
+          }
+
+          // Laner Minion Wave Farming
+          if (h.lane !== 'Jungle') {
+            const nearbyEnemyMinions = minions.filter(m => m.side !== h.side && Math.hypot(m.x - h.x, m.y - h.y) < 110);
+            if (nearbyEnemyMinions.length > 0 && (!nearestEnemy || minEnemyDist > 85) && now - h.lastAttackTime > 480) {
+              h.lastAttackTime = now;
+              const tm = nearbyEnemyMinions[0];
+              tm.hp -= (h.atk * 1.1);
+              projectiles.push({
+                x: h.x,
+                y: h.y,
+                targetX: tm.x,
+                targetY: tm.y,
+                color: h.side === 'blue' ? '#3498db' : '#e74c3c',
+                type: h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 'missile' : 'slash',
+                life: 0.2
+              });
+              if (tm.hp <= 0) {
+                h.gold += 85;
+                state.gold[h.side as 'blue' | 'red'] += 85;
+              }
+            }
+          }
 
           // Surprise Bush Ambush
           if (h.inBush && nearestEnemy && minEnemyDist < 75) {
@@ -933,12 +1037,42 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fill();
       });
 
-      // Jungle Buffs
+      // Jungle Buff Camps with Monsters & Mini HP Bars
       jungleCamps.forEach(c => {
-        ctx.fillStyle = c.name.includes('Blue') ? '#2980b9' : '#c0392b';
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, 9, 0, Math.PI * 2);
-        ctx.fill();
+        if (c.alive) {
+          ctx.fillStyle = c.type === 'blue' ? '#1e3799' : '#b71540';
+          ctx.beginPath();
+          ctx.arc(c.x, c.y, 14, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = c.type === 'blue' ? '#00d2d3' : '#ff6b6b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Monster Glyph
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(c.type === 'blue' ? '👾' : '🦖', c.x, c.y + 4);
+
+          // Mini Camp HP Bar
+          ctx.fillStyle = '#222';
+          ctx.fillRect(c.x - 14, c.y - 20, 28, 3.5);
+          ctx.fillStyle = c.type === 'blue' ? '#00d2d3' : '#ff6b6b';
+          ctx.fillRect(c.x - 14, c.y - 20, (c.hp / c.maxHp) * 28, 3.5);
+        } else {
+          // Respawn countdown ring
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
+          ctx.beginPath();
+          ctx.arc(c.x, c.y, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#555';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = '#aaa';
+          ctx.font = 'bold 8px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${Math.ceil(c.respawnTimer)}s`, c.x, c.y + 3);
+        }
       });
 
       // Bases
@@ -1101,6 +1235,31 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           ctx.textAlign = 'center';
           ctx.fillText('❄️ ICE', h.x, h.y + 4);
           return;
+        }
+
+        // Draw Recall animation
+        if (h.isRecalling) {
+          ctx.save();
+          // Vertical light beam
+          const gradient = ctx.createLinearGradient(h.x, h.y - 70, h.x, h.y + 10);
+          gradient.addColorStop(0, 'rgba(0, 206, 201, 0)');
+          gradient.addColorStop(0.5, 'rgba(0, 206, 201, 0.45)');
+          gradient.addColorStop(1, 'rgba(0, 206, 201, 0.85)');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(h.x - 12, h.y - 70, 24, 80);
+
+          // Concentric magic ring at feet
+          ctx.strokeStyle = '#00cec9';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y + 6, 18, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#00cec9';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('🛡️ RECALL...', h.x, h.y - 45);
+          ctx.restore();
         }
 
         // Wind of Nature Green Shield Aura
