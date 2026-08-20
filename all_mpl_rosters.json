@@ -1,0 +1,628 @@
+{
+  "ae": [
+    {
+      "name": "xepher",
+      "role": "Coach"
+    },
+    {
+      "name": "STYX",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "Nino",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "Alexander",
+      "role": "Roam"
+    },
+    {
+      "name": "Dingarai",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "Dalvin",
+      "role": "Midlane"
+    },
+    {
+      "name": "Halim",
+      "role": "Midlane"
+    },
+    {
+      "name": "Reyy",
+      "role": "Jungle"
+    },
+    {
+      "name": "Affan",
+      "role": "Jungle"
+    },
+    {
+      "name": "Ivann",
+      "role": "Roam"
+    },
+    {
+      "name": "xepher",
+      "role": "Coach"
+    },
+    {
+      "name": "STYX",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "Nino",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "Alexander",
+      "role": "Roam"
+    },
+    {
+      "name": "Dingarai",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "Dalvin",
+      "role": "Midlane"
+    },
+    {
+      "name": "Halim",
+      "role": "Midlane"
+    },
+    {
+      "name": "Reyy",
+      "role": "Jungle"
+    },
+    {
+      "name": "Affan",
+      "role": "Jungle"
+    },
+    {
+      "name": "Ivann",
+      "role": "Roam"
+    }
+  ],
+  "btr": [
+    {
+      "name": "K DOT",
+      "role": "Coach"
+    },
+    {
+      "name": "HER",
+      "role": "Analyst"
+    },
+    {
+      "name": "MORENOOO",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "EMANN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "FINN",
+      "role": "Roam"
+    },
+    {
+      "name": "NNAEL",
+      "role": "Jungle"
+    },
+    {
+      "name": "SHOGUN",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "MIGUEL",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "K DOT",
+      "role": "Coach"
+    },
+    {
+      "name": "HER",
+      "role": "Analyst"
+    },
+    {
+      "name": "MORENOOO",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "EMANN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "FINN",
+      "role": "Roam"
+    },
+    {
+      "name": "NNAEL",
+      "role": "Jungle"
+    },
+    {
+      "name": "SHOGUN",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "MIGUEL",
+      "role": "Gold Lane"
+    }
+  ],
+  "dewa": [
+    {
+      "name": "COACH RIGHT",
+      "role": "Coach"
+    },
+    {
+      "name": "LAUFEYSON",
+      "role": "Analyst"
+    },
+    {
+      "name": "OCTA",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "QINN",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "MAYBEEE",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "KAYN",
+      "role": "Jungle"
+    },
+    {
+      "name": "ITOSHI KESU",
+      "role": "Roam"
+    },
+    {
+      "name": "RUL GOOD",
+      "role": "Roam"
+    },
+    {
+      "name": "COACH RIGHT",
+      "role": "Coach"
+    },
+    {
+      "name": "LAUFEYSON",
+      "role": "Analyst"
+    },
+    {
+      "name": "OCTA",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "QINN",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "MAYBEEE",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "KAYN",
+      "role": "Jungle"
+    },
+    {
+      "name": "ITOSHI KESU",
+      "role": "Roam"
+    },
+    {
+      "name": "RUL GOOD",
+      "role": "Roam"
+    }
+  ],
+  "evos": [
+    {
+      "name": "ALDO",
+      "role": "Coach"
+    },
+    {
+      "name": "BRAVO",
+      "role": "Analyst"
+    },
+    {
+      "name": "ALBERTTT",
+      "role": "Jungle"
+    },
+    {
+      "name": "ERLAN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "VELL",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "MUEZZA",
+      "role": "Roam"
+    },
+    {
+      "name": "RENDYYY",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "DRIANW",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "ALDO",
+      "role": "Coach"
+    },
+    {
+      "name": "BRAVO",
+      "role": "Analyst"
+    },
+    {
+      "name": "ALBERTTT",
+      "role": "Jungle"
+    },
+    {
+      "name": "ERLAN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "VELL",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "MUEZZA",
+      "role": "Roam"
+    },
+    {
+      "name": "RENDYYY",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "DRIANW",
+      "role": "Mid Lane"
+    }
+  ],
+  "geek": [
+    {
+      "name": "ERPANG",
+      "role": "Coach"
+    },
+    {
+      "name": "VIVY",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "ABOYY",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "NAZARA",
+      "role": "Jungle"
+    },
+    {
+      "name": "KENNZYYSKIE",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "MARCEL",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "AUDYTZY",
+      "role": "Roam"
+    },
+    {
+      "name": "FEBRIII",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "ERPANG",
+      "role": "Coach"
+    },
+    {
+      "name": "VIVY",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "ABOYY",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "NAZARA",
+      "role": "Jungle"
+    },
+    {
+      "name": "KENNZYYSKIE",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "MARCEL",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "AUDYTZY",
+      "role": "Roam"
+    },
+    {
+      "name": "FEBRIII",
+      "role": "EXP Lane"
+    }
+  ],
+  "navi": [
+    {
+      "name": "YNOT",
+      "role": "Coach"
+    },
+    {
+      "name": "JACKLEE",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "HAN",
+      "role": "Analyst"
+    },
+    {
+      "name": "KARSS",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "ANDORYUUU",
+      "role": "Jungle"
+    },
+    {
+      "name": "APRHO",
+      "role": "Roam"
+    },
+    {
+      "name": "ZEONN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "JIIZEE",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "FEBBB",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "YNOT",
+      "role": "Coach"
+    },
+    {
+      "name": "JACKLEE",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "HAN",
+      "role": "Analyst"
+    },
+    {
+      "name": "KARSS",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "ANDORYUUU",
+      "role": "Jungle"
+    },
+    {
+      "name": "APRHO",
+      "role": "Roam"
+    },
+    {
+      "name": "ZEONN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "JIIZEE",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "FEBBB",
+      "role": "EXP Lane"
+    }
+  ],
+  "onic": [
+    {
+      "name": "CW",
+      "role": "Coach"
+    },
+    {
+      "name": "KIBOY",
+      "role": "Roam"
+    },
+    {
+      "name": "SANZ",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "KAIRI",
+      "role": "Jungle"
+    },
+    {
+      "name": "LUTPI",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "KELRA",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "SSAMUEL",
+      "role": "Roam"
+    },
+    {
+      "name": "CW",
+      "role": "Coach"
+    },
+    {
+      "name": "KIBOY",
+      "role": "Roam"
+    },
+    {
+      "name": "SANZ",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "KAIRI",
+      "role": "Jungle"
+    },
+    {
+      "name": "LUTPI",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "KELRA",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "SSAMUEL",
+      "role": "Roam"
+    }
+  ],
+  "rrq": [
+    {
+      "name": "COACH ADI",
+      "role": "Coach"
+    },
+    {
+      "name": "COACH KAYLEB",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "HAJIRIN",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "ARTHUR",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "SAID",
+      "role": "Roam"
+    },
+    {
+      "name": "JOSHUA",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "DEMONKITE",
+      "role": "Jungle"
+    },
+    {
+      "name": "HABIL",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "CLAYYY",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "COACH ADI",
+      "role": "Coach"
+    },
+    {
+      "name": "COACH KAYLEB",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "HAJIRIN",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "ARTHUR",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "SAID",
+      "role": "Roam"
+    },
+    {
+      "name": "JOSHUA",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "DEMONKITE",
+      "role": "Jungle"
+    },
+    {
+      "name": "HABIL",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "CLAYYY",
+      "role": "Mid Lane"
+    }
+  ],
+  "tlid": [
+    {
+      "name": "HONJAW",
+      "role": "Coach"
+    },
+    {
+      "name": "PAHLEVI",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "FACEHUGGER",
+      "role": "Analyst"
+    },
+    {
+      "name": "ARAN",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "DRICHEL",
+      "role": "Midlane"
+    },
+    {
+      "name": "LYONI",
+      "role": "Roam"
+    },
+    {
+      "name": "KEVEN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "ANAVER",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "KEVIN",
+      "role": "Jungle"
+    },
+    {
+      "name": "HONJAW",
+      "role": "Coach"
+    },
+    {
+      "name": "PAHLEVI",
+      "role": "Asst. Coach"
+    },
+    {
+      "name": "FACEHUGGER",
+      "role": "Analyst"
+    },
+    {
+      "name": "ARAN",
+      "role": "EXP Lane"
+    },
+    {
+      "name": "DRICHEL",
+      "role": "Midlane"
+    },
+    {
+      "name": "LYONI",
+      "role": "Roam"
+    },
+    {
+      "name": "KEVEN",
+      "role": "Gold Lane"
+    },
+    {
+      "name": "ANAVER",
+      "role": "Mid Lane"
+    },
+    {
+      "name": "KEVIN",
+      "role": "Jungle"
+    }
+  ]
+}

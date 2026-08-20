@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mpl-maroon: #680008;
+  --mpl-maroon-dark: #4a0006;
+  --mpl-red: #d32f2f;
+  --mpl-gold: #f1c40f;
+  --mpl-bg-light: #f8f9fa;
+}
+
+body {
+  background-color: #f8f9fa;
+  color: #111827;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-image: radial-gradient(rgba(104, 0, 8, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.font-mpl-title {
+  font-family: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', 'Oswald', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-in-out forwards;
+}
+
+/* Custom scrollbar for hero grid */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #d32f2f;
+  border-radius: 3px;
+}
