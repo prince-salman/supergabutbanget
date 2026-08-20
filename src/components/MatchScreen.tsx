@@ -266,7 +266,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
     let lastTime = performance.now();
     let minionWaveTimer = 0;
-    let gankTimer = 0;
+    let tacticalEventTimer = 0;
+    let nextEventInterval = 14 + Math.random() * 10;
 
     const loop = (now: number) => {
       const realDt = Math.min((now - lastTime) / 1000, 0.1) * (engineRef.current?.speed || 1);
@@ -276,7 +277,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       if (!engineRef.current?.isPaused && !isGameOver) {
         state.gameTime += dt * 3.5;
         minionWaveTimer += dt * 3.5;
-        gankTimer += dt * 3.5;
+        tacticalEventTimer += dt * 3.5;
 
         // 1. Minion Wave Spawner with Super Minions if Inhibitor Turret is destroyed
         if (minionWaveTimer >= 25) {
@@ -324,18 +325,78 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           });
         }
 
-        // 2. Gank & Roam Trigger
-        if (gankTimer >= 18) {
-          gankTimer = 0;
-          const targetLane = Math.random() > 0.5 ? 'Gold' : 'EXP';
-          const targetGankPos = targetLane === 'Gold' ? { x: 510, y: 480 } : { x: 290, y: 130 };
+        // 2. Dynamic RNG Tactical Events (Rusuh Jungle Invade, Bush Trap Ambush, Cut Minion, Split Push, Side Gank)
+        if (tacticalEventTimer >= nextEventInterval) {
+          tacticalEventTimer = 0;
+          nextEventInterval = 14 + Math.random() * 12; // Next event randomly occurs in 14-26 seconds
 
-          heroes.filter(h => !h.isDead && (h.lane === 'Jungle' || h.lane === 'Roam')).forEach(h => {
-            h.targetX = targetGankPos.x + (h.side === 'blue' ? -35 : 35) + (Math.random() - 0.5) * 40;
-            h.targetY = targetGankPos.y + (Math.random() - 0.5) * 40;
-          });
+          const eventRoll = Math.random();
+          const invadingSide = Math.random() > 0.5 ? 'blue' : 'red';
+          const defendingSide = invadingSide === 'blue' ? 'red' : 'blue';
 
-          logCommentary(`⚡ Roamer dan Jungler melakukan rotasi ganking menuju ${targetLane.toUpperCase()} LANE!`, 'highlight');
+          if (eventRoll < 0.28 && state.objective.status !== 'alive') {
+            // 🔥 Event: RUSUH JUNGLE INVADE (Serbuan Barbar ke Jungle Lawan)
+            const enemyBuffs = jungleCamps.filter(c => c.side === defendingSide && c.alive);
+            const targetCamp = enemyBuffs[0] || jungleCamps.find(c => c.side === defendingSide);
+
+            if (targetCamp) {
+              const invaders = heroes.filter(h => h.side === invadingSide && !h.isDead && (h.lane === 'Jungle' || h.lane === 'Roam' || h.lane === 'Mid'));
+              invaders.forEach(h => {
+                h.targetX = targetCamp.x + (Math.random() - 0.5) * 35;
+                h.targetY = targetCamp.y + (Math.random() - 0.5) * 35;
+              });
+
+              // Defenders rush to protect their jungle
+              const defenders = heroes.filter(h => h.side === defendingSide && !h.isDead && (h.lane === 'Jungle' || h.lane === 'Roam'));
+              defenders.forEach(h => {
+                h.targetX = targetCamp.x + (Math.random() - 0.5) * 40;
+                h.targetY = targetCamp.y + (Math.random() - 0.5) * 40;
+              });
+
+              const invaderLeader = invaders[0];
+              logCommentary(`🔥 RUSUH JUNGLE! ${invaderLeader?.playerName || 'Jungler'} & Roamer ${invadingSide.toUpperCase()} melakukan invasi barbar ke Jungle lawan untuk rusuh & curi ${targetCamp.name}!`, 'highlight');
+              damageNumbers.push({ x: targetCamp.x, y: targetCamp.y - 30, text: '⚔️ JUNGLE INVADE!', color: '#e74c3c', life: 1.2 });
+            }
+          } else if (eventRoll < 0.50) {
+            // 🌿 Event: TRAP SEMAK SUNGAI (Bush Ambush Trap)
+            const randomBush = bushes[Math.floor(Math.random() * bushes.length)];
+            const trappers = heroes.filter(h => h.side === invadingSide && !h.isDead && (h.lane === 'Roam' || h.lane === 'Mid' || h.lane === 'EXP'));
+            trappers.forEach(h => {
+              h.targetX = randomBush.x + (Math.random() - 0.5) * 20;
+              h.targetY = randomBush.y + (Math.random() - 0.5) * 20;
+            });
+            const trapperLeader = trappers[0];
+            logCommentary(`🌿 TRAP SEMAK! Skuad ${invadingSide.toUpperCase()} (${trapperLeader?.playerName || 'Roamer'}) bersembunyi di semak sungai menyiapkan surprise ambush!`, 'highlight');
+          } else if (eventRoll < 0.68) {
+            // ⚔️ Event: CUT MINION DI BELAKANG TURRET
+            const expHero = heroes.find(h => h.side === invadingSide && h.lane === 'EXP' && !h.isDead);
+            if (expHero) {
+              const cutPos = invadingSide === 'blue' ? { x: 440, y: 110 } : { x: 260, y: 130 };
+              expHero.targetX = cutPos.x;
+              expHero.targetY = cutPos.y;
+              logCommentary(`⚔️ CUT MINION! ${expHero.playerName} (${expHero.heroName}) agresif memotong gelombang minion di belakang turret lawan!`, 'highlight');
+            }
+          } else if (eventRoll < 0.82) {
+            // 🏰 Event: SPLIT PUSH TURRET
+            const pusher = heroes.find(h => h.side === invadingSide && (h.lane === 'Gold' || h.lane === 'EXP') && !h.isDead);
+            if (pusher) {
+              const pushLanePos = pusher.lane === 'Gold' 
+                ? (invadingSide === 'blue' ? { x: 620, y: 400 } : { x: 340, y: 490 })
+                : (invadingSide === 'blue' ? { x: 450, y: 120 } : { x: 160, y: 240 });
+              pusher.targetX = pushLanePos.x;
+              pusher.targetY = pushLanePos.y;
+              logCommentary(`🏰 SPLIT PUSH! ${pusher.playerName} (${pusher.heroName}) melakukan manuver split push menekan Turret samping!`, 'highlight');
+            }
+          } else {
+            // ⚡ Event: ROTASI GANKING KE GOLD / EXP LANE
+            const targetLane = Math.random() > 0.5 ? 'Gold' : 'EXP';
+            const targetGankPos = targetLane === 'Gold' ? { x: 510, y: 480 } : { x: 290, y: 130 };
+            heroes.filter(h => !h.isDead && (h.lane === 'Jungle' || h.lane === 'Roam')).forEach(h => {
+              h.targetX = targetGankPos.x + (h.side === 'blue' ? -35 : 35) + (Math.random() - 0.5) * 40;
+              h.targetY = targetGankPos.y + (Math.random() - 0.5) * 40;
+            });
+            logCommentary(`⚡ Roamer dan Jungler melakukan rotasi ganking menyergap ${targetLane.toUpperCase()} LANE!`, 'highlight');
+          }
         }
 
         // 3. Objective Timings (02:00 Turtle, 08:00 Lord, 12:00 Enhanced Lord)
