@@ -1,19 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { audioMgr } from '@/lib/audioManager';
 import { globalRateLimiter } from '@/lib/security';
-import { Trophy, Home, Award, Volume2, VolumeX, RotateCcw, Shield, Calendar, Users, BarChart3, Newspaper } from 'lucide-react';
+import { Trophy, Home, Award, Volume2, VolumeX, RotateCcw, Shield, Calendar, Users, BarChart3, Download, Upload } from 'lucide-react';
 
 interface NavbarProps {
   currentScreen: string;
   onNavigate: (screenId: string) => void;
   onResetCareer: () => void;
+  onExportSave?: () => void;
+  onImportSave?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   stage?: 'regular' | 'playoffs' | 'awards' | 'completed';
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onResetCareer, stage = 'regular' }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  currentScreen,
+  onNavigate,
+  onResetCareer,
+  onExportSave,
+  onImportSave,
+  stage = 'regular'
+}) => {
   const [isMuted, setIsMuted] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleToggleSound = () => {
     if (!globalRateLimiter.isAllowed('toggle_sound', 200)) return;
@@ -26,8 +36,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onRes
     onNavigate(screenId);
   };
 
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <header className="bg-[#680008] border-b-2 border-[#4A0006] text-white px-3 sm:px-4 md:px-8 py-2 md:py-2.5 sticky top-0 z-50 shadow-md">
+      {/* Hidden file input for restore save */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={onImportSave}
+        accept=".json"
+        className="hidden"
+      />
+
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-4">
         {/* Brand / Logo (matching id-mpl.com) */}
         <div className="w-full sm:w-auto flex justify-between sm:justify-start items-center gap-2.5">
@@ -48,8 +73,28 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onRes
             </div>
           </div>
 
-          {/* Quick Actions (Audio & Reset) for Mobile */}
+          {/* Quick Actions (Audio, Backup & Reset) for Mobile */}
           <div className="flex sm:hidden items-center gap-1.5">
+            {onExportSave && (
+              <button
+                onClick={onExportSave}
+                className="p-1.5 rounded text-xs bg-black/30 text-amber-300 border border-white/20 hover:bg-black/50"
+                title="Backup Save File (.json)"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {onImportSave && (
+              <button
+                onClick={handleUploadClick}
+                className="p-1.5 rounded text-xs bg-black/30 text-blue-300 border border-white/20 hover:bg-black/50"
+                title="Restore / Upload Save Game"
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
+            )}
+
             <button
               onClick={handleToggleSound}
               className={`p-1.5 rounded text-xs transition border ${
@@ -61,6 +106,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onRes
             >
               {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-mpl-gold" />}
             </button>
+
             <button
               onClick={onResetCareer}
               className="p-1.5 rounded text-xs bg-black/30 hover:bg-red-950 text-gray-300 hover:text-white border border-white/20 transition"
@@ -128,8 +174,30 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onRes
             <Award className="w-3 h-3 text-mpl-gold" /> AWARDS {(stage === 'regular' || stage === 'playoffs') && <span className="text-[8px] bg-black/40 text-amber-300 px-1 py-0.2 rounded font-mono">🔒</span>}
           </button>
 
-          {/* Desktop Quick Actions */}
+          {/* Desktop Quick Actions (Backup, Restore, Audio & Reset) */}
           <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-white/20">
+            {onExportSave && (
+              <button
+                onClick={onExportSave}
+                className="p-1.5 rounded text-xs bg-black/30 text-amber-300 border border-white/20 hover:bg-black/50 transition flex items-center gap-1"
+                title="Backup Save File (.json)"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-mono hidden md:inline">BACKUP</span>
+              </button>
+            )}
+
+            {onImportSave && (
+              <button
+                onClick={handleUploadClick}
+                className="p-1.5 rounded text-xs bg-black/30 text-blue-300 border border-white/20 hover:bg-black/50 transition flex items-center gap-1"
+                title="Restore Save File (.json)"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-mono hidden md:inline">RESTORE</span>
+              </button>
+            )}
+
             <button
               onClick={handleToggleSound}
               className={`p-1.5 rounded text-xs transition border ${

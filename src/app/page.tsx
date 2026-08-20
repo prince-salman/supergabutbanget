@@ -51,35 +51,51 @@ export default function Home() {
     }
   };
 
-  // Load Saved Career on mount
+  const applyLoadedCareer = (saved: any) => {
+    if (!saved || !saved.userTeamId) return;
+    const team = MPL_TEAMS.find(t => t.id === saved.userTeamId) || MPL_TEAMS[0];
+    const engine = new TournamentEngine(MPL_TEAMS, team.id);
+    if (saved.currentWeek) engine.currentWeek = saved.currentWeek;
+    if (saved.standings) engine.standings = saved.standings;
+    if (saved.schedule) engine.schedule = saved.schedule;
+    if (saved.stage) engine.stage = saved.stage;
+    if (saved.playoffMatches) engine.playoffMatches = saved.playoffMatches;
+    if (saved.playerStats) engine.playerStats = saved.playerStats;
+    if (saved.championTeam) engine.championTeam = saved.championTeam;
+
+    ensureNextMatchDifficulty(engine);
+
+    setCoachName(sanitizeInputText(saved.coachName, 24) || 'Coach Salman');
+    setUserTeam(team);
+    setTournament(engine);
+    setCurrentScreen('screen-dashboard');
+  };
+
+  // Load Saved Career on mount (from localStorage with Disk API fallback)
   useEffect(() => {
     const saved = safeStorage.load<any>(STORAGE_KEY, (d) => !!d && typeof d.coachName === 'string' && typeof d.userTeamId === 'string');
     if (saved) {
-      const team = MPL_TEAMS.find(t => t.id === saved.userTeamId) || MPL_TEAMS[0];
-      const engine = new TournamentEngine(MPL_TEAMS, team.id);
-      if (saved.currentWeek) engine.currentWeek = saved.currentWeek;
-      if (saved.standings) engine.standings = saved.standings;
-      if (saved.schedule) engine.schedule = saved.schedule;
-      if (saved.stage) engine.stage = saved.stage;
-      if (saved.playoffMatches) engine.playoffMatches = saved.playoffMatches;
-      if (saved.playerStats) engine.playerStats = saved.playerStats;
-      if (saved.championTeam) engine.championTeam = saved.championTeam;
-
-      ensureNextMatchDifficulty(engine);
-
-      setCoachName(sanitizeInputText(saved.coachName, 24));
-      setUserTeam(team);
-      setTournament(engine);
-      setCurrentScreen('screen-dashboard');
+      applyLoadedCareer(saved);
+    } else {
+      // Disk Server API fallback (if browser cache was cleared or Chrome reinstalled)
+      fetch('/api/career')
+        .then(res => res.json())
+        .then(res => {
+          if (res.success && res.data) {
+            applyLoadedCareer(res.data);
+            safeStorage.save(STORAGE_KEY, res.data);
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
-  // Save career state
+  // Save career state to both localStorage AND local hard disk
   const saveCareer = (updatedTourney?: TournamentEngine) => {
     const tourney = updatedTourney || tournament;
     if (!userTeam || !tourney) return;
 
-    safeStorage.save(STORAGE_KEY, {
+    const payload = {
       coachName,
       userTeamId: userTeam.id,
       currentWeek: tourney.currentWeek,
@@ -89,7 +105,16 @@ export default function Home() {
       playoffMatches: tourney.playoffMatches,
       playerStats: tourney.playerStats,
       championTeam: tourney.championTeam
-    });
+    };
+
+    safeStorage.save(STORAGE_KEY, payload);
+
+    // Save to Disk via /api/career
+    fetch('/api/career', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
   };
 
   const handleStartCareer = (teamId: string, name: string) => {
@@ -104,7 +129,7 @@ export default function Home() {
     setTournament(engine);
     setCurrentScreen('screen-dashboard');
 
-    safeStorage.save(STORAGE_KEY, {
+    const payload = {
       coachName: cleanName,
       userTeamId: team.id,
       currentWeek: engine.currentWeek,
@@ -114,18 +139,82 @@ export default function Home() {
       playoffMatches: engine.playoffMatches,
       playerStats: engine.playerStats,
       championTeam: engine.championTeam
-    });
+    };
+
+    safeStorage.save(STORAGE_KEY, payload);
+    fetch('/api/career', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
   };
 
   const handleResetCareer = () => {
     if (window.confirm('Apakah Anda yakin ingin mereset karier Head Coach dan memulai dari awal?')) {
       safeStorage.remove(STORAGE_KEY);
+      fetch('/api/career', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      }).catch(() => {});
       window.location.reload();
     }
   };
 
+  // Export / Backup Save File to a downloaded .json
+  const handleExportSave = () => {
+    if (!userTeam || !tournament) {
+      alert('Belum ada save data karier aktif untuk diunduh.');
+      return;
+    }
+
+    const payload = {
+      coachName,
+      userTeamId: userTeam.id,
+      currentWeek: tournament.currentWeek,
+      standings: tournament.standings,
+      schedule: tournament.schedule,
+      stage: tournament.stage,
+      playoffMatches: tournament.playoffMatches,
+      playerStats: tournament.playerStats,
+      championTeam: tournament.championTeam,
+      savedAt: new Date().toISOString()
+    };
+
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute('href', dataStr);
+    dlAnchor.setAttribute('download', `mpl_coach_save_${userTeam.tag.toLowerCase()}_week${tournament.currentWeek}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+  };
+
+  // Import / Restore Save File from an uploaded .json
+  const handleImportSave = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsed = JSON.parse(content);
+        if (parsed && parsed.userTeamId) {
+          applyLoadedCareer(parsed);
+          saveCareer();
+          alert('✅ Save file berhasil dipulihkan! Selamat melanjutkan karier Coach!');
+        } else {
+          alert('❌ Format file save tidak valid.');
+        }
+      } catch (err) {
+        alert('❌ Gagal membaca file save JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleEnterDraft = (homeTeam: Team, awayTeam: Team, isUserHome: boolean, matchInfo: any) => {
-    // If not in middle of an ongoing series, initialize new BO3 series
     if (!activeBO3Series || activeBO3Series.matchInfo?.id !== matchInfo?.id) {
       setActiveBO3Series({
         matchInfo,
@@ -139,107 +228,91 @@ export default function Home() {
     }
 
     const userSide = isUserHome ? 'blue' : 'red';
-    const difficulty = matchInfo?.difficultyCondition || rollRandomMatchDifficulty();
-    const draft = new DraftEngine(homeTeam, awayTeam, userSide, difficulty);
-    setActiveDraftEngine(draft);
     setActiveMatchUserSide(userSide);
     setActiveMatchInfo(matchInfo);
+
+    const engine = new DraftEngine(
+      homeTeam,
+      awayTeam,
+      userSide,
+      matchInfo?.difficultyCondition
+    );
+
+    setActiveDraftEngine(engine);
     setCurrentScreen('screen-draft');
-    draft.start();
   };
 
   const handleDraftComplete = (result: DraftResult) => {
+    if (activeMatchInfo?.difficultyCondition) {
+      result.difficultyCondition = activeMatchInfo.difficultyCondition;
+    }
     setActiveDraftResult(result);
     setCurrentScreen('screen-match');
   };
 
-  const handleMatchFinish = (finishData: PostMatchData) => {
-    if (tournament && activeMatchInfo) {
-      if (tournament.stage === 'playoffs') {
-        const homeScore = finishData.winnerSide === 'blue' ? 3 : 1;
-        const awayScore = finishData.winnerSide === 'red' ? 3 : 1;
-        const winnerId = finishData.winnerSide === 'blue' ? activeMatchInfo.homeTeam.id : activeMatchInfo.awayTeam.id;
-        tournament.recordPlayoffMatchResult(activeMatchInfo.id, winnerId, homeScore, awayScore, finishData);
-        finishData.seriesInfo = {
-          matchId: activeMatchInfo.id,
-          gameNumber: 1,
-          homeWins: homeScore,
-          awayWins: awayScore,
-          homeTeam: activeMatchInfo.homeTeam,
-          awayTeam: activeMatchInfo.awayTeam,
-          isSeriesOver: true
-        };
-        setRecapData(finishData);
-        setCurrentScreen('screen-recap');
-        saveCareer();
-      } else {
-        // Regular Season BO3 Series
-        const currentSeries = activeBO3Series || {
-          matchInfo: activeMatchInfo,
-          homeTeam: MPL_TEAMS.find(t => t.id === activeMatchInfo.homeTeamId) || userTeam!,
-          awayTeam: MPL_TEAMS.find(t => t.id === activeMatchInfo.awayTeamId) || userTeam!,
-          isUserHome: activeMatchInfo.homeTeamId === userTeam?.id,
-          gameNumber: 1,
-          homeWins: 0,
-          awayWins: 0
-        };
-
-        const homeWonGame = finishData.winnerSide === 'blue';
-        const newHomeWins = currentSeries.homeWins + (homeWonGame ? 1 : 0);
-        const newAwayWins = currentSeries.awayWins + (!homeWonGame ? 1 : 0);
-        const isSeriesOver = newHomeWins === 2 || newAwayWins === 2 || currentSeries.gameNumber >= 3;
-
-        finishData.seriesInfo = {
-          matchId: activeMatchInfo.id,
-          gameNumber: currentSeries.gameNumber,
-          homeWins: newHomeWins,
-          awayWins: newAwayWins,
-          homeTeam: currentSeries.homeTeam,
-          awayTeam: currentSeries.awayTeam,
-          isSeriesOver
-        };
-
-        setRecapData(finishData);
-        setCurrentScreen('screen-recap');
-
-        if (isSeriesOver) {
-          const winnerId = newHomeWins > newAwayWins ? currentSeries.homeTeam.id : currentSeries.awayTeam.id;
-          tournament.recordMatchResult(activeMatchInfo.id, winnerId, newHomeWins, newAwayWins, finishData);
-          tournament.simulateOtherWeekMatches();
-          setActiveBO3Series(null);
-          saveCareer();
-        } else {
-          setActiveBO3Series({
-            ...currentSeries,
-            gameNumber: currentSeries.gameNumber + 1,
-            homeWins: newHomeWins,
-            awayWins: newAwayWins
-          });
-        }
-      }
+  const handleMatchFinish = (data: PostMatchData) => {
+    if (activeBO3Series) {
+      data.seriesInfo = {
+        matchId: activeBO3Series.matchInfo?.id || 'm_active',
+        isSeriesOver: false,
+        gameNumber: activeBO3Series.gameNumber,
+        homeWins: activeBO3Series.homeWins + (data.winnerSide === 'blue' ? 1 : 0),
+        awayWins: activeBO3Series.awayWins + (data.winnerSide === 'red' ? 1 : 0),
+        homeTeam: activeBO3Series.homeTeam,
+        awayTeam: activeBO3Series.awayTeam
+      };
     }
+    setRecapData(data);
+    setCurrentScreen('screen-recap');
   };
 
-  const handleRecapContinue = () => {
-    if (activeBO3Series && !recapData?.seriesInfo?.isSeriesOver) {
-      // Continue to next game of the BO3 series
-      const userSide = activeBO3Series.isUserHome ? 'blue' : 'red';
-      const difficulty = activeBO3Series.matchInfo?.difficultyCondition || rollRandomMatchDifficulty();
-      const draft = new DraftEngine(activeBO3Series.homeTeam, activeBO3Series.awayTeam, userSide, difficulty);
-      setActiveDraftEngine(draft);
-      setActiveMatchUserSide(userSide);
-      setActiveMatchInfo(activeBO3Series.matchInfo);
-      setCurrentScreen('screen-draft');
-      draft.start();
+  const handleSeriesFinished = (finalHomeScore: number, finalAwayScore: number) => {
+    if (!tournament || !activeBO3Series) return;
+
+    const m = activeBO3Series.matchInfo;
+    const winnerTeamId = finalHomeScore > finalAwayScore ? activeBO3Series.homeTeam.id : activeBO3Series.awayTeam.id;
+    if (tournament.stage === 'regular') {
+      tournament.recordMatchResult(m.id, winnerTeamId, finalHomeScore, finalAwayScore);
+      ensureNextMatchDifficulty(tournament);
+      saveCareer();
+    } else if (tournament.stage === 'playoffs') {
+      tournament.recordPlayoffMatchResult(m.id, winnerTeamId, finalHomeScore, finalAwayScore);
+      saveCareer();
+    }
+
+    setActiveBO3Series(null);
+  };
+
+  const handleRecapNext = () => {
+    if (!tournament || !activeBO3Series) {
+      setCurrentScreen('screen-dashboard');
       return;
     }
 
-    if (tournament?.stage === 'playoffs') {
-      setCurrentScreen('screen-playoffs');
-    } else if (tournament?.stage === 'completed') {
-      setCurrentScreen('screen-awards');
+    const series = activeBO3Series;
+    let homeWins = series.homeWins;
+    let awayWins = series.awayWins;
+
+    if (recapData) {
+      if (recapData.winnerSide === 'blue') homeWins++;
+      else awayWins++;
+    }
+
+    // Win condition check for BO3 / BO5 / BO7
+    const requiredWins = (tournament.stage === 'playoffs' && series.matchInfo.round === 'grand_final') ? 4 : 2;
+
+    if (homeWins === requiredWins || awayWins === requiredWins) {
+      handleSeriesFinished(homeWins, awayWins);
+      setCurrentScreen(tournament.stage === 'playoffs' ? 'screen-playoffs' : 'screen-dashboard');
     } else {
-      setCurrentScreen('screen-dashboard');
+      setActiveBO3Series({
+        ...series,
+        gameNumber: series.gameNumber + 1,
+        homeWins,
+        awayWins
+      });
+
+      handleEnterDraft(series.homeTeam, series.awayTeam, series.isUserHome, series.matchInfo);
     }
   };
 
@@ -251,7 +324,6 @@ export default function Home() {
     if (res.status === 'playoffs_started') {
       setCurrentScreen('screen-playoffs');
     } else {
-      // Re-trigger render
       setTournament(Object.assign(Object.create(Object.getPrototypeOf(tournament)), tournament));
     }
   };
@@ -272,20 +344,22 @@ export default function Home() {
     setTournament(Object.assign(Object.create(Object.getPrototypeOf(tournament)), tournament));
   };
 
+  const stage = tournament ? tournament.stage : 'regular';
+
   return (
-    <div className="min-h-screen flex flex-col bg-mpl-darkBg">
+    <div className="min-h-screen flex flex-col bg-[#F3F4F6] text-gray-900 font-sans selection:bg-[#680008] selection:text-white">
+      {/* 1. Navbar */}
       <Navbar
         currentScreen={currentScreen}
-        onNavigate={(screenId) => {
-          if (userTeam && tournament) {
-            setCurrentScreen(screenId);
-          }
-        }}
+        onNavigate={(screenId) => setCurrentScreen(screenId)}
         onResetCareer={handleResetCareer}
-        stage={tournament?.stage || 'regular'}
+        onExportSave={handleExportSave}
+        onImportSave={handleImportSave}
+        stage={stage}
       />
 
-      <div className="flex-1">
+      {/* 2. Dynamic Screens */}
+      <div className="flex-1 pb-12">
         {currentScreen === 'screen-welcome' && (
           <WelcomeScreen onStartCareer={handleStartCareer} />
         )}
@@ -322,22 +396,11 @@ export default function Home() {
           <RecapScreen
             recapData={recapData}
             userSide={activeMatchUserSide}
-            onContinue={handleRecapContinue}
+            onContinue={handleRecapNext}
           />
         )}
 
-        {currentScreen === 'screen-playoffs' && userTeam && tournament && (
-          <PlayoffsScreen
-            tournament={tournament}
-            userTeam={userTeam}
-            onPlayPlayoffMatch={handlePlayPlayoffMatch}
-            onSimulatePlayoffMatch={handleSimulatePlayoffMatch}
-            onGoAwards={() => setCurrentScreen('screen-awards')}
-            onGoDashboard={() => setCurrentScreen('screen-dashboard')}
-          />
-        )}
-
-        {currentScreen === 'screen-schedule' && userTeam && tournament && (
+        {currentScreen === 'screen-schedule' && tournament && userTeam && (
           <ScheduleScreen
             tournament={tournament}
             userTeam={userTeam}
@@ -345,10 +408,21 @@ export default function Home() {
           />
         )}
 
-        {currentScreen === 'screen-statistics' && userTeam && tournament && (
+        {currentScreen === 'screen-statistics' && tournament && userTeam && (
           <StatisticsScreen
             tournament={tournament}
             userTeam={userTeam}
+          />
+        )}
+
+        {currentScreen === 'screen-playoffs' && tournament && userTeam && (
+          <PlayoffsScreen
+            tournament={tournament}
+            userTeam={userTeam}
+            onPlayPlayoffMatch={handlePlayPlayoffMatch}
+            onSimulatePlayoffMatch={handleSimulatePlayoffMatch}
+            onGoAwards={() => setCurrentScreen('screen-awards')}
+            onGoDashboard={() => setCurrentScreen('screen-dashboard')}
           />
         )}
 
@@ -360,6 +434,20 @@ export default function Home() {
           />
         )}
       </div>
+
+      {/* 3. Official MPL Footer */}
+      <footer className="bg-white border-t border-gray-200 py-6 px-4 text-center text-xs text-gray-500 font-mono">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[#680008] font-mpl-title">MPL ID COACH SIMULATOR 2026</span>
+            <span>•</span>
+            <span>All 9 MPL ID Franchises Licensed</span>
+          </div>
+          <div>
+            Built with Next.js 14, Tailwind CSS & HTML5 Canvas
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
