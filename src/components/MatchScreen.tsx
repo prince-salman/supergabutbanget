@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { DraftResult, PostMatchData, CommentaryEntry, MatchState } from '@/types';
 import { audioMgr } from '@/lib/audioManager';
 import { globalRateLimiter } from '@/lib/security';
-import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
+import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl, getItemImageUrl } from '@/lib/imageAssets';
 import { getHeroPurchasedItems, MLBBItem } from '@/lib/data/items';
 import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle, Sparkles, TrendingUp, Users, Radio } from 'lucide-react';
 
@@ -1490,13 +1490,20 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                   return (
                     <div
                       key={idx}
-                      className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[9px] sm:text-[10px] overflow-hidden"
-                      title={it ? `${it.name} (${it.category})` : 'Slot Kosong'}
+                      className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-gray-900 border border-amber-500/40 flex items-center justify-center overflow-hidden shadow-sm hover:scale-110 transition cursor-help"
+                      title={it ? `${it.name} (${it.category})\n💰 ${it.cost}g\n${it.passive || ''}` : 'Slot Kosong'}
                     >
                       {it ? (
-                        <span>{it.icon}</span>
+                        <img
+                          src={getItemImageUrl(it.id, it.name)}
+                          alt={it.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
                       ) : (
-                        <span className="text-[7px] text-gray-400 font-mono">•</span>
+                        <span className="text-[7px] text-gray-500 font-mono">•</span>
                       )}
                     </div>
                   );
@@ -1672,13 +1679,20 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                       return (
                         <div
                           key={idx}
-                          className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[9px] sm:text-[10px] overflow-hidden"
-                          title={it ? `${it.name} (${it.category})` : 'Slot Kosong'}
+                          className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-gray-900 border border-amber-500/40 flex items-center justify-center overflow-hidden shadow-sm hover:scale-110 transition cursor-help"
+                          title={it ? `${it.name} (${it.category})\n💰 ${it.cost}g\n${it.passive || ''}` : 'Slot Kosong'}
                         >
                           {it ? (
-                            <span>{it.icon}</span>
+                            <img
+                              src={getItemImageUrl(it.id, it.name)}
+                              alt={it.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
                           ) : (
-                            <span className="text-[7px] text-gray-400 font-mono">•</span>
+                            <span className="text-[7px] text-gray-500 font-mono">•</span>
                           )}
                         </div>
                       );
