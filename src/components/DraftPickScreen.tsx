@@ -40,6 +40,14 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
       }, 1500);
     };
 
+    if (!draftEngine.isStarted) {
+      draftEngine.start();
+    } else {
+      if (!draftEngine.isUserTurn() && !draftEngine.isCompleted && !draftEngine.isSwapPhase) {
+        draftEngine.executeAITurn();
+      }
+    }
+
     return () => {
       draftEngine.destroy();
     };

@@ -33,7 +33,9 @@ export class DraftEngine {
   public turnIndex: number = 0;
   public timer: number = 25;
   public timerInterval: any = null;
+  public isStarted: boolean = false;
   public isCompleted: boolean = false;
+  public isSwapPhase: boolean = false;
 
   public commsMessages: DraftCommsMessage[] = [];
   public currentComms: DraftCommsMessage | null = null;
@@ -79,9 +81,12 @@ export class DraftEngine {
   }
 
   start() {
+    if (this.isStarted) return;
+    this.isStarted = true;
     this.turnIndex = 0;
     this.timer = 25;
     this.isCompleted = false;
+    this.isSwapPhase = false;
     this.teamConfidenceBoost = 0;
     this.commsMessages = [];
     this.startTurn();
@@ -469,8 +474,6 @@ export class DraftEngine {
 
     return { cc, burst, frontline, sustain, early, late, waveclear, overall };
   }
-
-  public isSwapPhase: boolean = false;
 
   autoAssignRosterToHeroes(team: Team, picks: Hero[]): HeroAssignment[] {
     const assignments: HeroAssignment[] = [];
