@@ -350,6 +350,63 @@ export class AudioManager {
     });
   }
 
+  playTauntTasTas() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [0, 0.08, 0.16].forEach(delay => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1400, t + delay);
+      osc.frequency.exponentialRampToValueAtTime(800, t + delay + 0.04);
+      gain.gain.setValueAtTime(0.12, t + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.04);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t + delay);
+      osc.stop(t + delay + 0.04);
+    });
+  }
+
+  playLithoSlain() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(600, t);
+    osc.frequency.setValueAtTime(1200, t + 0.1);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.4);
+  }
+
+  playDodge() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(900, t);
+    osc.frequency.exponentialRampToValueAtTime(300, t + 0.08);
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+
   // --- END MATCH (VICTORY & DEFEAT) ---
   playVictory() {
     if (this.muted) return;

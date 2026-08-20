@@ -186,8 +186,14 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         inBush: false,
         hasBlueBuff: false,
         hasRedBuff: false,
+        hasLithoBuff: false,
+        lithoTimer: 0,
         isRecalling: false,
         recallTimer: 0,
+        isTauntingTasTas: false,
+        tauntTimer: 0,
+        warAxeStacks: 0,
+        bruteForceStacks: 0,
         buffAuraAngle: Math.random() * Math.PI * 2,
         ccStatus: null as 'stunned' | 'airborne' | 'frozen' | null,
         ccTimer: 0,
@@ -206,6 +212,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
     draftResult.blueAssignments.forEach(a => heroes.push(createHero(a, 'blue')));
     draftResult.redAssignments.forEach(a => heroes.push(createHero(a, 'red')));
 
+    let wipeoutAnnounced = { blue: false, red: false };
+
     const state = {
       gameTime: 0,
       score: { blue: 0, red: 0 },
@@ -213,6 +221,14 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       turrets: { blue: 6, red: 6 },
       turtles: { blue: 0, red: 0 },
       lords: { blue: 0, red: 0 },
+      litho: {
+        x: 400,
+        y: 240,
+        hp: 1100,
+        maxHp: 1100,
+        alive: true,
+        respawnTimer: 0
+      },
       objective: {
         type: 'turtle' as 'turtle' | 'lord' | 'enhanced_lord',
         status: 'spawning' as 'spawning' | 'alive' | 'dead',
@@ -800,6 +816,55 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           }
 
+          // 19. Base Fountain Healing Regeneration (+300 HP/s)
+          const distToBase = Math.hypot(h.x - h.baseX, h.y - h.baseY);
+          if (distToBase < 42 && h.hp < h.maxHp) {
+            h.hp = Math.min(h.maxHp, h.hp + 300 * dt);
+            if (Math.random() < 0.05) {
+              damageNumbers.push({ x: h.x, y: h.y - 20, text: '✨ HEAL +300', color: '#2ecc71', life: 0.4 });
+            }
+          }
+
+          // 1. Lithowanderer River Crab Contest
+          if (state.litho.alive) {
+            const distToLitho = Math.hypot(h.x - state.litho.x, h.y - state.litho.y);
+            if (distToLitho < 85 && (!nearestEnemy || minEnemyDist > 90) && now - h.lastAttackTime > 450) {
+              h.lastAttackTime = now;
+              state.litho.hp -= (h.atk * 1.3);
+              projectiles.push({
+                x: h.x,
+                y: h.y,
+                targetX: state.litho.x,
+                targetY: state.litho.y,
+                color: '#2ecc71',
+                type: 'slash',
+                life: 0.2
+              });
+
+              if (state.litho.hp <= 0) {
+                state.litho.hp = 0;
+                state.litho.alive = false;
+                state.litho.respawnTimer = 65;
+                audioMgr.playLithoSlain();
+                h.hasLithoBuff = true;
+                h.hp = Math.min(h.maxHp, h.hp + 380);
+                h.gold += 120;
+                state.gold[h.side as 'blue' | 'red'] += 120;
+                visualEffects.push({ type: 'shockwave', x: state.litho.x, y: state.litho.y, color: '#2ecc71', radius: 30, life: 0.3 });
+                damageNumbers.push({ x: state.litho.x, y: state.litho.y - 25, text: '🦎 LITHO SECURED! (+120g)', color: '#2ecc71', life: 1.0 });
+                logCommentary(`🦎 LITHOWANDERER! ${h.playerName} (${h.heroName}) mengamankan Lithowanderer di sungai! HP pulih & speed bertambah!`, 'highlight');
+              }
+            }
+          }
+
+          // 9. Marksman Kiting & Orb-Walking
+          if (h.hero.role === 'Marksman' && nearestEnemy && minEnemyDist < 75) {
+            const kdx = nearestEnemy.x - h.x;
+            const kdy = nearestEnemy.y - h.y;
+            h.x -= (kdx / minEnemyDist) * 32 * dt * 3.5;
+            h.y -= (kdy / minEnemyDist) * 32 * dt * 3.5;
+          }
+
           // Combat Attack Execution
           const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 130 : 60;
           const isEnemy = h.side !== userSide;
@@ -808,6 +873,30 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
           if (nearestEnemy && minEnemyDist <= attackRange && now - h.lastAttackTime > attackIntervalMs && !nearestEnemy.isFrozenInvulnerable) {
             h.lastAttackTime = now;
+
+            // 16. Skill Miss / Dodging Animation (High Mobility Heroes)
+            const isMobileHero = ['Assassin', 'Fighter'].includes(nearestEnemy.hero.role);
+            if (isMobileHero && Math.random() < 0.20) {
+              audioMgr.playDodge();
+              damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 20, text: '⚡ DODGE!', color: '#bdc3c7', life: 0.6 });
+              visualEffects.push({ type: 'shockwave', x: nearestEnemy.x, y: nearestEnemy.y, color: '#ecf0f1', radius: 25, life: 0.2 });
+              return;
+            }
+
+            // 15. Passive Item Stacks Counter (War Axe & Brute Force)
+            if (h.items.some((it: MLBBItem) => it.id === 'war_axe')) {
+              h.warAxeStacks = Math.min(8, (h.warAxeStacks || 0) + 1);
+            }
+            if (h.items.some((it: MLBBItem) => it.id === 'brute_force_breastplate')) {
+              h.bruteForceStacks = Math.min(5, (h.bruteForceStacks || 0) + 1);
+            }
+
+            // 10. Tower Diving Aggression Alert
+            const inEnemyTurret = turrets.some(t => t.side !== h.side && t.hp > 0 && Math.hypot(t.x - nearestEnemy.x, t.y - nearestEnemy.y) < 75);
+            if (inEnemyTurret && nearestEnemy.hp < nearestEnemy.maxHp * 0.22) {
+              damageNumbers.push({ x: h.x, y: h.y - 28, text: '🏰 TOWER DIVE!', color: '#e74c3c', life: 0.8 });
+            }
+
             const isCrit = Math.random() < 0.30;
             const baseDmg = h.atk + Math.random() * 30;
             let dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
@@ -905,6 +994,15 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               h.gold += 320;
               state.score[h.side as 'blue' | 'red'] += 1;
 
+              // 2. Taunting & Recall Tas-Tas (50% chance on kill)
+              if (Math.random() < 0.65) {
+                h.isTauntingTasTas = true;
+                audioMgr.playTauntTasTas();
+                damageNumbers.push({ x: h.x, y: h.y - 32, text: '⚡ TAS-TAS-TAS! 😜', color: '#f1c40f', life: 1.1 });
+                logCommentary(`😜 RECALL TAS-TAS! ${h.playerName} (${h.heroName}) melakukan taunting tas-tas di depan jenazah lawan!`, 'normal');
+                setTimeout(() => { h.isTauntingTasTas = false; }, 1200);
+              }
+
               // Assists distribution
               heroes.filter(t => t.side === h.side && t.id !== h.id && !t.isDead).forEach(tm => {
                 if (Math.hypot(tm.x - nearestEnemy.x, tm.y - nearestEnemy.y) < 270) {
@@ -913,7 +1011,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 }
               });
 
-              // Kill Banner & Announcer SFX
+              // 12. Kill Banner & Announcer SFX
               let killTitle = 'ELIMINATED';
               let killSub = '';
               const totalKills = state.score.blue + state.score.red;
@@ -949,10 +1047,12 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 nearestEnemy.streak = 0;
               }
 
+              // 13. Wipeout & Ace Celebration Check
               const deadEnemies = heroes.filter(x => x.side === nearestEnemy.side && x.isDead).length;
               if (deadEnemies >= 5) {
-                logCommentary(`💀 WIPEOUT! Seluruh skuad ${nearestEnemy.side.toUpperCase()} tereliminasi! Base terbuka lebar!`, 'highlight');
                 audioMgr.playWipeout();
+                killTitle = '💥 WIPEOUT! ALL 5 SLAIN!';
+                logCommentary(`💥 APA YANG TERJADI SAUDARA-SAUDARA?! WIPEOUT! SELURUH SKUAD ${nearestEnemy.side.toUpperCase()} RATA TUMBANG! PUSH SEKARANG!`, 'kill');
               }
 
               setActiveKillBanner({
@@ -1135,6 +1235,28 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           ctx.fillText(`${Math.ceil(c.respawnTimer)}s`, c.x, c.y + 3);
         }
       });
+
+      // Lithowanderer River Crab
+      if (state.litho.alive) {
+        ctx.fillStyle = '#27ae60';
+        ctx.beginPath();
+        ctx.arc(state.litho.x, state.litho.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2ecc71';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🦎', state.litho.x, state.litho.y + 4);
+
+        // Mini HP Bar
+        ctx.fillStyle = '#222';
+        ctx.fillRect(state.litho.x - 12, state.litho.y - 16, 24, 3);
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(state.litho.x - 12, state.litho.y - 16, (state.litho.hp / state.litho.maxHp) * 24, 3);
+      }
 
       // Bases
       ctx.fillStyle = '#2980b9';
@@ -1395,6 +1517,36 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`${h.playerName} (${h.heroName})`, h.x, h.y - 20);
+
+        // 1. Lithowanderer Speed & Healing Ring
+        if (h.hasLithoBuff) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(46, 204, 113, 0.85)';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y + 6, 26, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 2. Taunting Tas-Tas text
+        if (h.isTauntingTasTas) {
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('⚡ TAS-TAS! 😜', h.x, h.y - 34);
+        }
+
+        // 15. War Axe / Brute Force Stacks badge
+        if (h.warAxeStacks > 0 || h.bruteForceStacks > 0) {
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(h.x - 14, h.y + 14, 28, 9);
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = 'bold 7px monospace';
+          ctx.textAlign = 'center';
+          const txt = h.warAxeStacks > 0 ? `🗡️x${h.warAxeStacks}` : `🛡️x${h.bruteForceStacks}`;
+          ctx.fillText(txt, h.x, h.y + 21);
+        }
 
         // CC Stun Indicator
         if (h.ccStatus === 'stunned') {
