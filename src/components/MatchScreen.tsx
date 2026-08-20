@@ -112,7 +112,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       { id: 'r_red', side: 'red', name: 'Red Buff', x: 540, y: 110 }
     ];
 
-    // River Bushes coordinates for tactical camouflage / ambushes
+    // River Bushes
     const bushes = [
       { x: 280, y: 220 },
       { x: 330, y: 360 },
@@ -182,6 +182,11 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         lastUltTime: 0,
         lastSpellTime: 0,
         inBush: false,
+        hasBlueBuff: lane === 'Jungle',
+        hasRedBuff: lane === 'Jungle',
+        buffAuraAngle: Math.random() * Math.PI * 2,
+        ccStatus: null as 'stunned' | 'airborne' | 'frozen' | null,
+        ccTimer: 0,
         battleSpell: lane === 'Jungle' ? 'Retribution' : lane === 'Roam' ? 'Flicker' : lane === 'Mid' ? 'Flameshot' : lane === 'Gold' ? 'Purify' : 'Vengeance'
       };
     };
@@ -199,7 +204,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       objective: {
         type: 'turtle' as 'turtle' | 'lord' | 'enhanced_lord',
         status: 'spawning' as 'spawning' | 'alive' | 'dead',
-        timer: 120, // 02:00 Turtle spawn
+        timer: 120,
         hp: 4500,
         maxHp: 4500,
         x: 400,
@@ -261,35 +266,52 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         minionWaveTimer += dt * 3.5;
         gankTimer += dt * 3.5;
 
-        // 1. Minion Wave Spawner (Every 25s)
+        // 1. Minion Wave Spawner with Feature 3: Super Minions if Inhibitor Turret is destroyed
         if (minionWaveTimer >= 25) {
           minionWaveTimer = 0;
           ['top', 'mid', 'bot'].forEach(l => {
             const path = (lanePaths as any)[l];
+            
+            // Check if inner turret on this lane is broken
+            const redInnerBroken = turrets.some(t => t.side === 'red' && t.lane === l && t.type === 'inner' && t.hp <= 0);
+            const blueInnerBroken = turrets.some(t => t.side === 'blue' && t.lane === l && t.type === 'inner' && t.hp <= 0);
+
+            // Blue Minions (Super if red inner broken)
             minions.push({
               id: Math.random(),
               side: 'blue',
               lane: l,
               x: path[0].x,
               y: path[0].y,
-              hp: 380,
-              maxHp: 380,
-              atk: 32,
+              hp: redInnerBroken ? 920 : 380,
+              maxHp: redInnerBroken ? 920 : 380,
+              atk: redInnerBroken ? 75 : 32,
+              isSuper: redInnerBroken,
               targetIdx: 1,
               path
             });
+
+            // Red Minions (Super if blue inner broken)
             minions.push({
               id: Math.random(),
               side: 'red',
               lane: l,
               x: path[path.length - 1].x,
               y: path[path.length - 1].y,
-              hp: 380,
-              maxHp: 380,
-              atk: 32,
+              hp: blueInnerBroken ? 920 : 380,
+              maxHp: blueInnerBroken ? 920 : 380,
+              atk: blueInnerBroken ? 75 : 32,
+              isSuper: blueInnerBroken,
               targetIdx: path.length - 2,
               path
             });
+
+            if (redInnerBroken) {
+              logCommentary(`👾 SUPER MINION BIRU berbaris menyerbu ${l.toUpperCase()} Lane!`, 'highlight');
+            }
+            if (blueInnerBroken) {
+              logCommentary(`👾 SUPER MINION MERAH berbaris menyerbu ${l.toUpperCase()} Lane!`, 'highlight');
+            }
           });
         }
 
@@ -429,7 +451,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         });
 
-        // 7. Update Heroes (Gold, Level, Items, Ultimate FX, Battle Spells, Bush Ambush)
+        // 7. Update Heroes (Gold, Items, CC Stun, Buff Aura, Combat)
         heroes.forEach(h => {
           if (h.isDead) {
             h.respawnTimer -= dt * 3.5;
@@ -443,12 +465,24 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             return;
           }
 
+          // Feature 1: Buff Aura rotation
+          h.buffAuraAngle = (h.buffAuraAngle || 0) + 3.5 * dt;
+
+          // Feature 2: Crowd Control Stun duration timer
+          if (h.ccTimer > 0) {
+            h.ccTimer -= dt;
+            if (h.ccTimer <= 0) {
+              h.ccStatus = null;
+            }
+            return; // Immobilized while CC'd!
+          }
+
           // Passive Gold & Level Scaling
           h.gold += Math.round(dt * 28);
           state.gold[h.side as 'blue' | 'red'] += Math.round(dt * 28);
           h.level = Math.min(15, 1 + Math.floor(h.gold / 680));
 
-          // Real MLBB Item Equipment Purchases based on Gold
+          // Real MLBB Item Purchases based on Gold
           const purchasedItems = getHeroPurchasedItems(h.hero.role, h.gold);
           if (purchasedItems.length > h.items.length) {
             const newItem = purchasedItems[purchasedItems.length - 1];
@@ -465,10 +499,12 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             if (it.stats.hp) itemHpBonus += it.stats.hp;
           });
 
+          // Buff bonus (Red Buff gives +20 Atk, Blue Buff gives fast attack)
+          const buffBonus = (h.hasRedBuff ? 25 : 0);
           h.maxHp = 1150 + (h.level * 140) + (h.hero.stats.frontline * 10) + itemHpBonus;
-          h.atk = 95 + (h.level * 12) + (h.hero.stats.burst * 1.4) + itemAtkBonus;
+          h.atk = 95 + (h.level * 12) + (h.hero.stats.burst * 1.4) + itemAtkBonus + buffBonus;
 
-          // Feature 3: Check Bush Camouflage / Stealth
+          // Bush Camouflage / Stealth
           const nearBush = bushes.some(b => Math.hypot(b.x - h.x, b.y - h.y) < 22);
           h.inBush = nearBush;
 
@@ -485,7 +521,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           });
 
-          // Feature 3: Surprise Bush Ambush
+          // Surprise Bush Ambush
           if (h.inBush && nearestEnemy && minEnemyDist < 75) {
             h.inBush = false;
             visualEffects.push({ type: 'shockwave', x: h.x, y: h.y, color: '#2ecc71', radius: 35, life: 0.35 });
@@ -499,7 +535,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             logCommentary(`🌿 AMBUSH! ${h.playerName} (${h.heroName}) menyergap dari semak-semak!`, 'highlight');
           }
 
-          // Feature 2: Battle Spells (Flicker on low HP, Purify/Vengeance/Aegis)
+          // Battle Spells (Flicker on low HP, Purify/Vengeance/Aegis)
           if (h.hp < h.maxHp * 0.32 && now - h.lastSpellTime > 16000) {
             h.lastSpellTime = now;
             if (h.battleSpell === 'Flicker') {
@@ -512,6 +548,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               logCommentary(`💨 ${h.playerName} (${h.heroName}) menggunakan FLICKER untuk melarikan diri!`, 'normal');
             } else if (h.battleSpell === 'Purify') {
               h.shield = 400;
+              h.ccStatus = null;
+              h.ccTimer = 0;
               visualEffects.push({ type: 'shockwave', x: h.x, y: h.y, color: '#f1c40f', radius: 30, life: 0.3 });
               damageNumbers.push({ x: h.x, y: h.y - 25, text: '🌟 PURIFY & SHIELD!', color: '#f1c40f', life: 0.8 });
             } else if (h.battleSpell === 'Vengeance' || h.battleSpell === 'Aegis') {
@@ -553,7 +591,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             const baseDmg = h.atk + Math.random() * 30;
             const dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
 
-            // Feature 1: Hero Ultimate Skill Cast Animation (Every 10-14s during combat)
+            // Hero Ultimate Skill Cast & Feature 2: Trigger CC Stun
             if (now - h.lastUltTime > 12000) {
               h.lastUltTime = now;
               const ultColor = h.hero.role === 'Mage' ? '#9b59b6' : h.hero.role === 'Assassin' ? '#e74c3c' : h.hero.role === 'Tank' ? '#f39c12' : '#3498db';
@@ -572,7 +610,20 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 color: '#f1c40f',
                 life: 0.9
               });
-              logCommentary(`💥 ULTIMATE DIBUKA! ${h.playerName} (${h.heroName}) mengaktifkan skill Ultimate pamungkas!`, 'highlight');
+
+              // Feature 2: Tank/Mage Stun CC on Target
+              if (h.hero.role === 'Tank' || h.hero.role === 'Support' || h.hero.role === 'Mage') {
+                nearestEnemy.ccStatus = 'stunned';
+                nearestEnemy.ccTimer = 1.3;
+                damageNumbers.push({
+                  x: nearestEnemy.x,
+                  y: nearestEnemy.y - 28,
+                  text: '💫 STUNNED!',
+                  color: '#f39c12',
+                  life: 1.0
+                });
+                logCommentary(`💫 CROWD CONTROL! ${h.playerName} memberikan efek STUN kepada ${nearestEnemy.playerName}!`, 'highlight');
+              }
             }
 
             nearestEnemy.hp -= dmg;
@@ -819,12 +870,18 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fillRect(t.x - 14, t.y - 18, (t.hp / t.maxHp) * 28, 4);
       });
 
-      // Minions
+      // Minions (Feature 3: Super Minions render larger with glowing ring)
       minions.forEach(m => {
         ctx.fillStyle = m.side === 'blue' ? '#74b9ff' : '#ff7675';
         ctx.beginPath();
-        ctx.arc(m.x, m.y, 4.5, 0, Math.PI * 2);
+        ctx.arc(m.x, m.y, m.isSuper ? 7.5 : 4.5, 0, Math.PI * 2);
         ctx.fill();
+
+        if (m.isSuper) {
+          ctx.strokeStyle = '#f1c40f';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       });
 
       // Objective Pit (Turtle / Lord)
@@ -904,9 +961,29 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         }
       });
 
-      // Render Heroes
+      // Render Heroes with Feature 1: Buff Auras & Feature 2: CC Stun Icons
       heroes.forEach(h => {
         if (h.isDead) return;
+
+        // Feature 1: Blue Buff & Red Buff rotating aura rings under foot
+        if (h.hasBlueBuff) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y + 6, 22, h.buffAuraAngle, h.buffAuraAngle + Math.PI * 1.5);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (h.hasRedBuff) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y + 6, 24, h.buffAuraAngle + Math.PI, h.buffAuraAngle + Math.PI * 2.5);
+          ctx.stroke();
+          ctx.restore();
+        }
 
         // Apply Bush Stealth Alpha
         ctx.save();
@@ -951,6 +1028,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`${h.playerName} (${h.heroName})`, h.x, h.y - 20);
+
+        // Feature 2: Crowd Control Stun Indicator
+        if (h.ccStatus === 'stunned') {
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.fillText('💫 STUN', h.x, h.y - 32);
+        }
 
         // HP Bar
         ctx.fillStyle = '#111';
@@ -1168,7 +1252,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           </div>
         </div>
 
-        {/* Feature 4: Live Broadcast Gold Lead Bar */}
+        {/* Live Broadcast Gold Lead Bar */}
         <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono">
           <div className="flex items-center gap-1.5 text-blue-400 font-bold">
             <span>{draftResult.blueTeam.shortName}</span>
