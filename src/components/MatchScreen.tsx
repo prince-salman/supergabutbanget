@@ -5,7 +5,8 @@ import { DraftResult, PostMatchData, CommentaryEntry, MatchState } from '@/types
 import { audioMgr } from '@/lib/audioManager';
 import { globalRateLimiter } from '@/lib/security';
 import { getHeroImageUrl, getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
-import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle } from 'lucide-react';
+import { getHeroPurchasedItems, MLBBItem } from '@/lib/data/items';
+import { Shield, Swords, Crown, Zap, Play, Pause, FastForward, Volume2, AlertTriangle, Sparkles } from 'lucide-react';
 
 interface MatchScreenProps {
   draftResult: DraftResult;
@@ -41,7 +42,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
     audioMgr.playMatchStartHorn();
 
-    // Preload hero portrait images for high performance 2D canvas drawing
+    // Preload hero portrait images for canvas rendering
     const heroImageCache: Record<string, HTMLImageElement> = {};
     const allAssignments = [...draftResult.blueAssignments, ...draftResult.redAssignments];
     allAssignments.forEach(a => {
@@ -84,7 +85,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       ]
     };
 
-    // Authentic Turrets per side
+    // Turrets per side
     const turrets = [
       // Blue Turrets
       { id: 'b_t1', side: 'blue', lane: 'top', type: 'outer', x: 170, y: 220, hp: 3500, maxHp: 3500, lastAttack: 0 },
@@ -120,24 +121,18 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         : { x: 700 - Math.random() * 20, y: 100 - Math.random() * 20 };
 
       const lane = assignment.lane;
-      // Precise clash positions where heroes engage each other directly!
       let targetPos = { x: 400, y: 300 };
 
       if (lane === 'EXP') {
-        // EXP lane duel clash point near top river
-        targetPos = isBlue ? { x: 270, y: 130 } : { x: 310, y: 130 };
+        targetPos = isBlue ? { x: 275, y: 130 } : { x: 305, y: 130 };
       } else if (lane === 'Gold') {
-        // Gold lane duel clash point near bot river
-        targetPos = isBlue ? { x: 490, y: 480 } : { x: 530, y: 480 };
+        targetPos = isBlue ? { x: 495, y: 480 } : { x: 525, y: 480 };
       } else if (lane === 'Mid') {
-        // Mid lane duel clash point right in the middle
-        targetPos = isBlue ? { x: 380, y: 320 } : { x: 420, y: 280 };
+        targetPos = isBlue ? { x: 385, y: 315 } : { x: 415, y: 285 };
       } else if (lane === 'Jungle') {
-        // Jungler farms buff first, then clashes at River/Gank
-        targetPos = isBlue ? { x: 230, y: 370 } : { x: 570, y: 230 };
+        targetPos = isBlue ? { x: 240, y: 360 } : { x: 560, y: 240 };
       } else { // Roam
-        // Roamer supports mid and prepares to gank side lanes
-        targetPos = isBlue ? { x: 360, y: 340 } : { x: 440, y: 260 };
+        targetPos = isBlue ? { x: 365, y: 335 } : { x: 435, y: 265 };
       }
 
       const cleanHeroId = assignment.hero.id.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -160,12 +155,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         baseX: basePos.x,
         baseY: basePos.y,
         laneTarget: targetPos,
-        hp: 1250 + assignment.hero.stats.frontline * 12,
-        maxHp: 1250 + assignment.hero.stats.frontline * 12,
+        hp: 1150 + assignment.hero.stats.frontline * 10,
+        maxHp: 1150 + assignment.hero.stats.frontline * 10,
         shield: 0,
-        atk: 90 + assignment.hero.stats.burst * 1.3,
+        atk: 95 + assignment.hero.stats.burst * 1.35,
         level: 1,
         gold: 300,
+        items: [] as MLBBItem[],
         kda: { k: 0, d: 0, a: 0 },
         streak: 0,
         isDead: false,
@@ -191,8 +187,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         type: 'turtle' as 'turtle' | 'lord' | 'enhanced_lord',
         status: 'spawning' as 'spawning' | 'alive' | 'dead',
         timer: 120, // 02:00 Turtle spawn
-        hp: 4800,
-        maxHp: 4800,
+        hp: 4500,
+        maxHp: 4500,
         x: 400,
         y: 280,
         killCount: 0
@@ -212,6 +208,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         hp: h.hp,
         maxHp: h.maxHp,
         gold: h.gold,
+        items: h.items,
         kda: { ...h.kda },
         isDead: h.isDead,
         respawnTimer: h.respawnTimer,
@@ -234,7 +231,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       setCommentaries(prev => [entry, ...prev.slice(0, 45)]);
     };
 
-    logCommentary('⚔️ Match resmi dimulai! Selamat datang di Land of Dawn!', 'highlight');
+    logCommentary('⚔️ Match resmi dimulai! Welcome to the Land of Dawn!', 'highlight');
     logCommentary('🛡️ Minion telah bergerak ke tiga lane. Pertarungan laning dimulai!', 'normal');
 
     let lastTime = performance.now();
@@ -265,7 +262,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               y: path[0].y,
               hp: 380,
               maxHp: 380,
-              atk: 30,
+              atk: 32,
               targetIdx: 1,
               path
             });
@@ -277,15 +274,15 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               y: path[path.length - 1].y,
               hp: 380,
               maxHp: 380,
-              atk: 30,
+              atk: 32,
               targetIdx: path.length - 2,
               path
             });
           });
         }
 
-        // 2. Gank & Roam Trigger (Every 20s, Roamer and Jungler rotate to side lanes)
-        if (gankTimer >= 22) {
+        // 2. Gank & Roam Trigger (Every 18s, Roamer and Jungler rotate to side lanes)
+        if (gankTimer >= 18) {
           gankTimer = 0;
           const targetLane = Math.random() > 0.5 ? 'Gold' : 'EXP';
           const targetGankPos = targetLane === 'Gold' ? { x: 510, y: 480 } : { x: 290, y: 130 };
@@ -303,10 +300,9 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           if (state.gameTime >= 720) { // 12:00+ Enhanced Lord
             state.objective.status = 'alive';
             state.objective.type = 'enhanced_lord';
-            state.objective.hp = 13000;
-            state.objective.maxHp = 13000;
+            state.objective.hp = 13500;
+            state.objective.maxHp = 13500;
             logCommentary('⚡ ENHANCED LORD TELAH BANGKIT DENGAN THUNDER CHARGE! Kontes penentuan kemenangan!', 'objective');
-            // Gather all 10 heroes
             heroes.filter(h => !h.isDead).forEach(h => {
               h.targetX = state.objective.x + (h.side === 'blue' ? -45 : 45) + (Math.random() - 0.5) * 50;
               h.targetY = state.objective.y + (Math.random() - 0.5) * 50;
@@ -314,10 +310,9 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           } else if (state.gameTime >= 480) { // 08:00+ Lord
             state.objective.status = 'alive';
             state.objective.type = 'lord';
-            state.objective.hp = 8500;
-            state.objective.maxHp = 8500;
+            state.objective.hp = 8800;
+            state.objective.maxHp = 8800;
             logCommentary('👑 SANCTUARY LORD TELAH MUNCUL DI PIT RIVER! Kedua tim 5v5 bersiap kontes Lord!', 'objective');
-            // Gather all 10 heroes
             heroes.filter(h => !h.isDead).forEach(h => {
               h.targetX = state.objective.x + (h.side === 'blue' ? -45 : 45) + (Math.random() - 0.5) * 50;
               h.targetY = state.objective.y + (Math.random() - 0.5) * 50;
@@ -325,11 +320,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           } else if (state.gameTime >= 120 && state.objective.killCount < 3 && state.gameTime < 480) { // Turtle (Maksimal 3 Kali sebelum 08:00)
             state.objective.status = 'alive';
             state.objective.type = 'turtle';
-            state.objective.hp = 4800 + state.objective.killCount * 400;
-            state.objective.maxHp = 4800 + state.objective.killCount * 400;
+            state.objective.hp = 4600 + state.objective.killCount * 400;
+            state.objective.maxHp = 4600 + state.objective.killCount * 400;
             const turtleNum = state.objective.killCount + 1;
             logCommentary(`🐢 TURTLE KE-${turtleNum} (Maksimal 3 Turtle) TELAH MUNCUL DI RIVER! Jungler & kedua tim berkumpul kontes Retribution!`, 'objective');
-            // Gather Junglers, EXP, Mid, Roamers
             heroes.filter(h => !h.isDead && h.lane !== 'Gold').forEach(h => {
               h.targetX = state.objective.x + (h.side === 'blue' ? -40 : 40) + (Math.random() - 0.5) * 40;
               h.targetY = state.objective.y + (Math.random() - 0.5) * 40;
@@ -352,7 +346,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             ml.x += (dx / dist) * 50 * dt;
             ml.y += (dy / dist) * 50 * dt;
           } else {
-            // Smash attack on turret / base
             if (targetTurret) {
               targetTurret.hp -= 400 * dt;
               visualEffects.push({ type: 'shockwave', x: targetTurret.x, y: targetTurret.y, color: '#f39c12', radius: 28, life: 0.3 });
@@ -391,14 +384,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           }
 
-          // Minions attack enemy minions
           const enemyMinions = minions.filter(em => em.side !== m.side && Math.hypot(em.x - m.x, em.y - m.y) < 35);
           if (enemyMinions.length > 0) {
             enemyMinions[0].hp -= m.atk * dt;
           }
         }
 
-        // 6. Update Turrets (Laser Defense)
+        // 6. Update Turrets
         turrets.forEach(t => {
           if (t.hp <= 0) return;
 
@@ -425,7 +417,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         });
 
-        // 7. Update Heroes (Dynamic Combat, High Engagement, Kills & Assists)
+        // 7. Update Heroes (Gold, Level, Items, Combat, Kills & Assists)
         heroes.forEach(h => {
           if (h.isDead) {
             h.respawnTimer -= dt * 3.5;
@@ -440,10 +432,29 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
 
           // Passive Gold & Level Scaling
-          h.gold += Math.round(dt * 26);
-          state.gold[h.side as 'blue' | 'red'] += Math.round(dt * 26);
-          h.level = Math.min(15, 1 + Math.floor(h.gold / 700));
-          h.atk = 90 + (h.level * 10) + (h.hero.stats.burst * 1.4);
+          h.gold += Math.round(dt * 28);
+          state.gold[h.side as 'blue' | 'red'] += Math.round(dt * 28);
+          h.level = Math.min(15, 1 + Math.floor(h.gold / 680));
+
+          // Real MLBB Item Equipment Purchases based on Gold
+          const purchasedItems = getHeroPurchasedItems(h.hero.role, h.gold);
+          if (purchasedItems.length > h.items.length) {
+            const newItem = purchasedItems[purchasedItems.length - 1];
+            logCommentary(`🛍️ ${h.playerName} (${h.heroName}) membeli item [${newItem.icon} ${newItem.name}]!`, 'normal');
+          }
+          h.items = purchasedItems;
+
+          // Item stat bonuses
+          let itemAtkBonus = 0;
+          let itemHpBonus = 0;
+          h.items.forEach((it: MLBBItem) => {
+            if (it.stats.atk) itemAtkBonus += it.stats.atk;
+            if (it.stats.magic) itemAtkBonus += it.stats.magic * 0.9;
+            if (it.stats.hp) itemHpBonus += it.stats.hp;
+          });
+
+          h.maxHp = 1150 + (h.level * 140) + (h.hero.stats.frontline * 10) + itemHpBonus;
+          h.atk = 95 + (h.level * 12) + (h.hero.stats.burst * 1.4) + itemAtkBonus;
 
           // Find nearest living enemy hero
           const livingEnemies = heroes.filter(e => e.side !== h.side && !e.isDead);
@@ -458,45 +469,42 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           });
 
-          // Dynamic Movement: Move toward lane clash or chase low HP enemy
-          if (nearestEnemy && minEnemyDist < 160) {
-            // Combat stance: Move slightly toward or kite enemy
+          // Dynamic Movement
+          if (nearestEnemy && minEnemyDist < 170) {
             const dx = nearestEnemy.x - h.x;
             const dy = nearestEnemy.y - h.y;
-            const chaseSpeed = 90 * dt;
-            if (minEnemyDist > 50) {
+            const chaseSpeed = 95 * dt;
+            if (minEnemyDist > 45) {
               h.x += (dx / minEnemyDist) * chaseSpeed;
               h.y += (dy / minEnemyDist) * chaseSpeed;
             }
           } else {
-            // Move toward assigned target point
             const dx = h.targetX - h.x;
             const dy = h.targetY - h.y;
             const dist = Math.hypot(dx, dy);
             if (dist > 8) {
-              const speedPx = 85 * dt;
+              const speedPx = 88 * dt;
               h.x += (dx / dist) * speedPx;
               h.y += (dy / dist) * speedPx;
             }
           }
 
           // Combat Attack Execution (Melee 60px, Ranged 125px)
-          const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 125 : 60;
+          const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 130 : 60;
           const isEnemy = h.side !== userSide;
           const combatMult = isEnemy && draftResult.difficultyCondition ? draftResult.difficultyCondition.aiCombatMultiplier : 1.0;
-          const attackIntervalMs = h.hero.role === 'Marksman' ? 420 : h.hero.role === 'Assassin' ? 500 : 650;
+          const attackIntervalMs = h.hero.role === 'Marksman' ? 400 : h.hero.role === 'Assassin' ? 480 : 620;
 
           if (nearestEnemy && minEnemyDist <= attackRange && now - h.lastAttackTime > attackIntervalMs) {
             h.lastAttackTime = now;
-            const isCrit = Math.random() < 0.28;
-            const baseDmg = h.atk + Math.random() * 25;
-            const dmg = Math.round((isCrit ? baseDmg * 1.85 : baseDmg) * combatMult);
+            const isCrit = Math.random() < 0.30;
+            const baseDmg = h.atk + Math.random() * 30;
+            const dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
 
             nearestEnemy.hp -= dmg;
             h.damageDealt += dmg;
             nearestEnemy.damageTaken += dmg;
 
-            // Visual Projectile / Slash Beam
             projectiles.push({
               x: h.x,
               y: h.y,
@@ -524,14 +532,14 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               
               h.kda.k += 1;
               h.streak = (h.streak || 0) + 1;
-              h.gold += 280;
+              h.gold += 320;
               state.score[h.side as 'blue' | 'red'] += 1;
 
-              // Teammates in range get Assists immediately!
+              // All nearby teammates get Assists immediately!
               heroes.filter(t => t.side === h.side && t.id !== h.id && !t.isDead).forEach(tm => {
-                if (Math.hypot(tm.x - nearestEnemy.x, tm.y - nearestEnemy.y) < 260) {
+                if (Math.hypot(tm.x - nearestEnemy.x, tm.y - nearestEnemy.y) < 270) {
                   tm.kda.a += 1;
-                  tm.gold += 140;
+                  tm.gold += 160;
                 }
               });
 
@@ -600,7 +608,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               state.objective.hp -= (h.atk * 0.5) * dt;
             });
 
-            // Retribution execution threshold (<1800 HP)
             const jungler = nearHeroes.find(h => h.lane === 'Jungle') || nearHeroes[0];
             if (jungler && state.objective.hp < 1800) {
               visualEffects.push({
@@ -637,7 +644,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 });
               }
 
-              // Respawn timer: next objective in 120s
               setTimeout(() => {
                 state.objective.status = 'spawning';
               }, 12000);
@@ -645,7 +651,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         }
 
-        // 9. Turret Pushing by Heroes
+        // 9. Turret Pushing
         heroes.forEach(h => {
           if (h.isDead) return;
           const enemyTurrets = turrets.filter(t => t.side !== h.side && t.hp > 0 && Math.hypot(t.x - h.x, t.y - h.y) < 70);
@@ -661,7 +667,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         });
 
-        // 10. Win / Game Over Condition (Base Destruction or Overwhelming Lead in Late Game)
+        // 10. Win Condition
         const blueDeadCount = heroes.filter(h => h.side === 'blue' && h.isDead).length;
         const redDeadCount = heroes.filter(h => h.side === 'red' && h.isDead).length;
 
@@ -674,34 +680,31 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         }
       }
 
-      // --- RENDER 2D LAND OF DAWN MAP CANVAS ---
+      // --- RENDER 2D CANVAS ---
       ctx.fillStyle = '#0f2015';
       ctx.fillRect(0, 0, 800, 600);
 
-      // Lanes Paths with Stone Texture
+      // Lanes
       ctx.strokeStyle = '#1d3b24';
       ctx.lineWidth = 38;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
-      // Top Lane
       ctx.moveTo(lanePaths.top[0].x, lanePaths.top[0].y);
       lanePaths.top.forEach(p => ctx.lineTo(p.x, p.y));
-      // Mid Lane
       ctx.moveTo(lanePaths.mid[0].x, lanePaths.mid[0].y);
       lanePaths.mid.forEach(p => ctx.lineTo(p.x, p.y));
-      // Bot Lane
       ctx.moveTo(lanePaths.bot[0].x, lanePaths.bot[0].y);
       lanePaths.bot.forEach(p => ctx.lineTo(p.x, p.y));
       ctx.stroke();
 
-      // River Water with Flowing Wave
+      // River
       ctx.fillStyle = 'rgba(41, 128, 185, 0.35)';
       ctx.beginPath();
       ctx.moveTo(220, 80); ctx.lineTo(660, 520); ctx.lineTo(580, 540); ctx.lineTo(140, 100);
       ctx.fill();
 
-      // River Bushes
+      // Bushes
       ctx.fillStyle = '#1b5e20';
       [[280, 220], [330, 360], [470, 240], [520, 380], [390, 210], [410, 390]].forEach(([bx, by]) => {
         ctx.beginPath();
@@ -709,7 +712,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fill();
       });
 
-      // Jungle Monster Camps
+      // Jungle Buffs
       jungleCamps.forEach(c => {
         ctx.fillStyle = c.name.includes('Blue') ? '#2980b9' : '#c0392b';
         ctx.beginPath();
@@ -717,7 +720,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fill();
       });
 
-      // Bases (Crystal Crystals)
+      // Bases
       ctx.fillStyle = '#2980b9';
       ctx.beginPath(); ctx.arc(bases.blue.x, bases.blue.y, 28, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#6dd5fa'; ctx.lineWidth = 3; ctx.stroke();
@@ -737,7 +740,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fill();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
 
-        // Turret HP Bar
         ctx.fillStyle = '#222';
         ctx.fillRect(t.x - 14, t.y - 18, 28, 4);
         ctx.fillStyle = t.side === 'blue' ? '#2ecc71' : '#e74c3c';
@@ -763,7 +765,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.textAlign = 'center';
         ctx.fillText(isLord ? '👑' : '🐢', state.objective.x, state.objective.y + 6);
 
-        // HP Bar
         ctx.fillStyle = '#222';
         ctx.fillRect(state.objective.x - 24, state.objective.y - 34, 48, 6);
         ctx.fillStyle = isLord ? '#9b59b6' : '#2ecc71';
@@ -779,7 +780,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('👑 LORD', ml.x, ml.y + 4);
       }
 
-      // Projectiles / Laser Beams / Skill Slashes
+      // Projectiles
       projectiles.forEach((p, idx) => {
         p.life -= dt;
         if (p.life <= 0) {
@@ -794,7 +795,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.stroke();
       });
 
-      // Visual Effects (Retri lightning, shockwaves)
+      // Visual Effects (Retri lightning)
       visualEffects.forEach((ve, idx) => {
         ve.life -= dt;
         if (ve.life <= 0) {
@@ -813,11 +814,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         }
       });
 
-      // Render Heroes (REAL OFFICIAL HERO PORTRAITS)
+      // Render Heroes
       heroes.forEach(h => {
         if (h.isDead) return;
 
-        // 1. Hero Circular Portrait
         ctx.save();
         ctx.beginPath();
         ctx.arc(h.x, h.y, 16, 0, Math.PI * 2);
@@ -832,14 +832,12 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         }
         ctx.restore();
 
-        // 2. Team Color Border Ring
         ctx.beginPath();
         ctx.arc(h.x, h.y, 16, 0, Math.PI * 2);
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = h.side === 'blue' ? '#3498db' : '#e74c3c';
         ctx.stroke();
 
-        // 3. Level Badge (Bottom Right)
         ctx.fillStyle = '#f1c40f';
         ctx.beginPath();
         ctx.arc(h.x + 12, h.y + 12, 6.5, 0, Math.PI * 2);
@@ -849,13 +847,11 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.textAlign = 'center';
         ctx.fillText(`${h.level}`, h.x + 12, h.y + 14.5);
 
-        // 4. Hero & Player Tag (Above Head)
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`${h.playerName} (${h.heroName})`, h.x, h.y - 20);
 
-        // 5. HP Bar + Shield
         ctx.fillStyle = '#111';
         ctx.fillRect(h.x - 18, h.y - 16, 36, 4.5);
         ctx.fillStyle = h.side === 'blue' ? '#2ecc71' : '#e74c3c';
@@ -880,7 +876,28 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fillText(d.text, d.x, d.y);
       });
 
-      setMatchState({ ...state });
+      setMatchState({
+        ...state,
+        heroes: heroes.map(h => ({
+          id: h.id,
+          heroId: h.heroId,
+          side: h.side,
+          lane: h.lane,
+          playerName: h.playerName,
+          heroName: h.heroName,
+          heroIcon: h.heroIcon,
+          level: h.level,
+          hp: h.hp,
+          maxHp: h.maxHp,
+          gold: h.gold,
+          items: h.items,
+          kda: { ...h.kda },
+          isDead: h.isDead,
+          respawnTimer: h.respawnTimer,
+          damageDealt: h.damageDealt,
+          damageTaken: h.damageTaken
+        }))
+      });
 
       if (!isGameOver) {
         animationFrameId = requestAnimationFrame(loop);
@@ -1000,11 +1017,11 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             />
           </div>
           <div>
-            <div className="text-xs md:text-sm font-black text-blue-400 uppercase tracking-wide truncate">
+            <div className="text-xs md:text-sm font-black text-blue-400 uppercase tracking-wide truncate font-mpl-title">
               {draftResult.blueTeam.name}
             </div>
             <div className="text-[10px] text-gray-400 font-mono">
-              🐢 {matchState?.turtles.blue || 0} • 👑 {matchState?.lords.blue || 0} • 🏰 {matchState?.turrets.blue || 6} • 💰 {((matchState?.gold.blue || 1500) / 1000).toFixed(1)}k
+              🐢 {matchState?.turtles.blue || 0}/3 • 👑 {matchState?.lords.blue || 0} • 🏰 {matchState?.turrets.blue || 6} • 💰 {((matchState?.gold.blue || 1500) / 1000).toFixed(1)}k
             </div>
           </div>
         </div>
@@ -1024,11 +1041,11 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         {/* Red Team Banner */}
         <div className="flex items-center justify-end gap-3 w-1/3 text-right">
           <div>
-            <div className="text-xs md:text-sm font-black text-red-400 uppercase tracking-wide truncate">
+            <div className="text-xs md:text-sm font-black text-red-400 uppercase tracking-wide truncate font-mpl-title">
               {draftResult.redTeam.name}
             </div>
             <div className="text-[10px] text-gray-400 font-mono">
-              💰 {((matchState?.gold.red || 1500) / 1000).toFixed(1)}k • 🏰 {matchState?.turrets.red || 6} • 👑 {matchState?.lords.red || 0} • 🐢 {matchState?.turtles.red || 0}
+              💰 {((matchState?.gold.red || 1500) / 1000).toFixed(1)}k • 🏰 {matchState?.turrets.red || 6} • 👑 {matchState?.lords.red || 0} • 🐢 {matchState?.turtles.red || 0}/3
             </div>
           </div>
           <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center p-1 bg-white rounded-xl shadow shrink-0">
@@ -1043,7 +1060,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
       {/* 2. Main Match Arena Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Blue Squad Column */}
+        {/* Blue Squad Column (with 6 Items Equipment Build per Player) */}
         <div className="lg:col-span-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-md flex flex-col gap-2">
           <h4 className="text-xs font-black text-blue-700 uppercase mb-1 flex items-center gap-1.5 font-mpl-title">
             🔵 {draftResult.blueTeam.shortName} SQUAD
@@ -1051,39 +1068,62 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           {matchState?.heroes.filter(h => h.side === 'blue').map(h => (
             <div
               key={h.id}
-              className={`p-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs transition ${
+              className={`p-2 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1.5 transition ${
                 h.isDead ? 'opacity-40 grayscale bg-red-50/40' : ''
               }`}
             >
-              <div className="flex items-center gap-2">
-                <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-blue-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
-                  <img
-                    src={getHeroImageUrl(h.heroId, h.heroName)}
-                    alt={h.heroName}
-                    className="w-full h-full object-cover"
-                  />
-                  {h.isDead && (
-                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[9px] text-red-400 font-mono font-bold">
-                      {Math.ceil(h.respawnTimer)}s
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-blue-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
+                    <img
+                      src={getHeroImageUrl(h.heroId, h.heroName)}
+                      alt={h.heroName}
+                      className="w-full h-full object-cover"
+                    />
+                    {h.isDead && (
+                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[9px] text-red-400 font-mono font-bold">
+                        {Math.ceil(h.respawnTimer)}s
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="font-bold text-gray-900 text-[11px] flex items-center gap-1.5">
+                      <span>{h.playerName}</span>
+                      <img
+                        src={getPlayerAvatarUrl(h.playerName, draftResult.blueTeam.themeColor)}
+                        alt={h.playerName}
+                        className="w-4 h-4 rounded-full border border-gray-300"
+                      />
                     </div>
-                  )}
+                    <div className="text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="font-bold text-gray-900 text-[11px] flex items-center gap-1.5">
-                    <span>{h.playerName}</span>
-                    <img
-                      src={getPlayerAvatarUrl(h.playerName, draftResult.blueTeam.themeColor)}
-                      alt={h.playerName}
-                      className="w-4 h-4 rounded-full border border-gray-300"
-                    />
-                  </div>
-                  <div className="text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
+                <div className="text-right">
+                  <div className="font-mono text-gray-900 font-black text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
+                  <div className="text-[9px] text-gray-500 font-mono font-bold">{h.gold}g</div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-mono text-gray-900 font-black text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
-                <div className="text-[9px] text-gray-500 font-mono">{h.gold}g</div>
+
+              {/* 6 Real MLBB Item Slots Display */}
+              <div className="flex items-center gap-1 pt-1 border-t border-gray-200">
+                {[0, 1, 2, 3, 4, 5].map(idx => {
+                  const it = h.items && h.items[idx];
+                  return (
+                    <div
+                      key={idx}
+                      className="w-5 h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[10px] overflow-hidden"
+                      title={it ? `${it.name} (${it.category})` : 'Slot Kosong'}
+                    >
+                      {it ? (
+                        <span>{it.icon}</span>
+                      ) : (
+                        <span className="text-[8px] text-gray-400 font-mono">•</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -1094,7 +1134,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           <div className="relative rounded-2xl overflow-hidden border-2 border-gray-300 shadow-2xl bg-black w-full">
             <canvas ref={canvasRef} width={800} height={600} className="w-full max-w-[800px] h-auto block" />
 
-            {/* Authentic Top-Center Kill Banner Notification */}
+            {/* Top-Center Animated Kill Banner */}
             {activeKillBanner && (
               <div className="absolute top-4 inset-x-0 flex justify-center pointer-events-none animate-bounce">
                 <div className="bg-gradient-to-r from-red-950/90 via-black/95 to-red-950/90 border-2 border-amber-400 px-6 py-2 rounded-2xl shadow-2xl flex items-center gap-4 text-white">
@@ -1177,7 +1217,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           </div>
         </div>
 
-        {/* Red Squad & Live Caster Feed */}
+        {/* Red Squad Column (with 6 Items Equipment Build per Player) */}
         <div className="lg:col-span-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-md flex flex-col gap-3">
           <div>
             <h4 className="text-xs font-black text-red-700 uppercase mb-1 flex items-center gap-1.5 font-mpl-title">
@@ -1187,39 +1227,62 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               {matchState?.heroes.filter(h => h.side === 'red').map(h => (
                 <div
                   key={h.id}
-                  className={`p-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs transition ${
+                  className={`p-2 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1.5 transition ${
                     h.isDead ? 'opacity-40 grayscale bg-red-50/40' : ''
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-red-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
-                      <img
-                        src={getHeroImageUrl(h.heroId, h.heroName)}
-                        alt={h.heroName}
-                        className="w-full h-full object-cover"
-                      />
-                      {h.isDead && (
-                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[9px] text-red-400 font-mono font-bold">
-                          {Math.ceil(h.respawnTimer)}s
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-red-400/60 bg-gray-900 shrink-0 flex items-center justify-center shadow">
+                        <img
+                          src={getHeroImageUrl(h.heroId, h.heroName)}
+                          alt={h.heroName}
+                          className="w-full h-full object-cover"
+                        />
+                        {h.isDead && (
+                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[9px] text-red-400 font-mono font-bold">
+                            {Math.ceil(h.respawnTimer)}s
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="font-bold text-gray-900 text-[11px] flex items-center gap-1.5">
+                          <span>{h.playerName}</span>
+                          <img
+                            src={getPlayerAvatarUrl(h.playerName, draftResult.redTeam.themeColor)}
+                            alt={h.playerName}
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                          />
                         </div>
-                      )}
+                        <div className="text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="font-bold text-gray-900 text-[11px] flex items-center gap-1.5">
-                        <span>{h.playerName}</span>
-                        <img
-                          src={getPlayerAvatarUrl(h.playerName, draftResult.redTeam.themeColor)}
-                          alt={h.playerName}
-                          className="w-4 h-4 rounded-full border border-gray-300"
-                        />
-                      </div>
-                      <div className="text-[9px] text-gray-500 font-mono">Lv.{h.level} • {h.heroName} ({h.lane})</div>
+                    <div className="text-right">
+                      <div className="font-mono text-gray-900 font-black text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
+                      <div className="text-[9px] text-gray-500 font-mono font-bold">{h.gold}g</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-mono text-gray-900 font-black text-[11px]">{h.kda.k}/{h.kda.d}/{h.kda.a}</div>
-                    <div className="text-[9px] text-gray-500 font-mono">{h.gold}g</div>
+
+                  {/* 6 Real MLBB Item Slots Display */}
+                  <div className="flex items-center gap-1 pt-1 border-t border-gray-200">
+                    {[0, 1, 2, 3, 4, 5].map(idx => {
+                      const it = h.items && h.items[idx];
+                      return (
+                        <div
+                          key={idx}
+                          className="w-5 h-5 rounded bg-gray-200 border border-gray-300 flex items-center justify-center text-[10px] overflow-hidden"
+                          title={it ? `${it.name} (${it.category})` : 'Slot Kosong'}
+                        >
+                          {it ? (
+                            <span>{it.icon}</span>
+                          ) : (
+                            <span className="text-[8px] text-gray-400 font-mono">•</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

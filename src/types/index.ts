@@ -168,6 +168,7 @@ export interface MatchHeroState {
   respawnTimer: number;
   damageDealt: number;
   damageTaken: number;
+  items?: any[];
 }
 
 export interface MatchObjectiveState {
