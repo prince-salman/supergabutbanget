@@ -88,20 +88,20 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
     // Turrets per side
     const turrets = [
       // Blue Turrets
-      { id: 'b_t1', side: 'blue', lane: 'top', type: 'outer', x: 170, y: 220, hp: 3500, maxHp: 3500, lastAttack: 0 },
-      { id: 'b_t2', side: 'blue', lane: 'top', type: 'inner', x: 130, y: 340, hp: 4000, maxHp: 4000, lastAttack: 0 },
-      { id: 'b_m1', side: 'blue', lane: 'mid', type: 'outer', x: 270, y: 380, hp: 3500, maxHp: 3500, lastAttack: 0 },
-      { id: 'b_m2', side: 'blue', lane: 'mid', type: 'inner', x: 200, y: 430, hp: 4000, maxHp: 4000, lastAttack: 0 },
-      { id: 'b_b1', side: 'blue', lane: 'bot', type: 'outer', x: 370, y: 480, hp: 3500, maxHp: 3500, lastAttack: 0 },
-      { id: 'b_b2', side: 'blue', lane: 'bot', type: 'inner', x: 240, y: 490, hp: 4000, maxHp: 4000, lastAttack: 0 },
+      { id: 'b_t1', side: 'blue', lane: 'top', type: 'outer', x: 170, y: 220, hp: 3500, maxHp: 3500, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'b_t2', side: 'blue', lane: 'top', type: 'inner', x: 130, y: 340, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'b_m1', side: 'blue', lane: 'mid', type: 'outer', x: 270, y: 380, hp: 3500, maxHp: 3500, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'b_m2', side: 'blue', lane: 'mid', type: 'inner', x: 200, y: 430, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'b_b1', side: 'blue', lane: 'bot', type: 'outer', x: 370, y: 480, hp: 3500, maxHp: 3500, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'b_b2', side: 'blue', lane: 'bot', type: 'inner', x: 240, y: 490, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false },
 
       // Red Turrets
-      { id: 'r_t1', side: 'red', lane: 'top', type: 'outer', x: 430, y: 120, hp: 3500, maxHp: 3500, lastAttack: 0 },
-      { id: 'r_t2', side: 'red', lane: 'top', type: 'inner', x: 570, y: 110, hp: 4000, maxHp: 4000, lastAttack: 0 },
-      { id: 'r_m1', side: 'red', lane: 'mid', type: 'outer', x: 530, y: 220, hp: 3500, maxHp: 3500, lastAttack: 0 },
-      { id: 'r_m2', side: 'red', lane: 'mid', type: 'inner', x: 600, y: 170, hp: 4000, maxHp: 4000, lastAttack: 0 },
-      { id: 'r_b1', side: 'red', lane: 'bot', type: 'outer', x: 630, y: 380, hp: 3500, maxHp: 3500, lastAttack: 0 },
-      { id: 'r_b2', side: 'red', lane: 'bot', type: 'inner', x: 670, y: 260, hp: 4000, maxHp: 4000, lastAttack: 0 }
+      { id: 'r_t1', side: 'red', lane: 'top', type: 'outer', x: 430, y: 120, hp: 3500, maxHp: 3500, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'r_t2', side: 'red', lane: 'top', type: 'inner', x: 570, y: 110, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'r_m1', side: 'red', lane: 'mid', type: 'outer', x: 530, y: 220, hp: 3500, maxHp: 3500, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'r_m2', side: 'red', lane: 'mid', type: 'inner', x: 600, y: 170, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'r_b1', side: 'red', lane: 'bot', type: 'outer', x: 630, y: 380, hp: 3500, maxHp: 3500, lastAttack: 0, hasBackdoorShield: false },
+      { id: 'r_b2', side: 'red', lane: 'bot', type: 'inner', x: 670, y: 260, hp: 4000, maxHp: 4000, lastAttack: 0, hasBackdoorShield: false }
     ];
 
     // Jungle Buff Camps
@@ -187,6 +187,14 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         buffAuraAngle: Math.random() * Math.PI * 2,
         ccStatus: null as 'stunned' | 'airborne' | 'frozen' | null,
         ccTimer: 0,
+        immortalityUsed: false,
+        isReviving: false,
+        reviveTimer: 0,
+        winterCrownUsed: false,
+        isFrozenInvulnerable: false,
+        frozenTimer: 0,
+        wonActive: false,
+        wonTimer: 0,
         battleSpell: lane === 'Jungle' ? 'Retribution' : lane === 'Roam' ? 'Flicker' : lane === 'Mid' ? 'Flameshot' : lane === 'Gold' ? 'Purify' : 'Vengeance'
       };
     };
@@ -266,17 +274,15 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         minionWaveTimer += dt * 3.5;
         gankTimer += dt * 3.5;
 
-        // 1. Minion Wave Spawner with Feature 3: Super Minions if Inhibitor Turret is destroyed
+        // 1. Minion Wave Spawner with Super Minions if Inhibitor Turret is destroyed
         if (minionWaveTimer >= 25) {
           minionWaveTimer = 0;
           ['top', 'mid', 'bot'].forEach(l => {
             const path = (lanePaths as any)[l];
             
-            // Check if inner turret on this lane is broken
             const redInnerBroken = turrets.some(t => t.side === 'red' && t.lane === l && t.type === 'inner' && t.hp <= 0);
             const blueInnerBroken = turrets.some(t => t.side === 'blue' && t.lane === l && t.type === 'inner' && t.hp <= 0);
 
-            // Blue Minions (Super if red inner broken)
             minions.push({
               id: Math.random(),
               side: 'blue',
@@ -291,7 +297,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               path
             });
 
-            // Red Minions (Super if blue inner broken)
             minions.push({
               id: Math.random(),
               side: 'red',
@@ -315,7 +320,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           });
         }
 
-        // 2. Gank & Roam Trigger (Every 18s, Roamer and Jungler rotate to side lanes)
+        // 2. Gank & Roam Trigger
         if (gankTimer >= 18) {
           gankTimer = 0;
           const targetLane = Math.random() > 0.5 ? 'Gold' : 'EXP';
@@ -451,8 +456,39 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         });
 
-        // 7. Update Heroes (Gold, Items, CC Stun, Buff Aura, Combat)
+        // 7. Update Heroes (Gold, Items, CC, Buff Aura, Active Legendary Items, Combat)
         heroes.forEach(h => {
+          // Feature 1: Immortality Revive handling
+          if (h.isReviving) {
+            h.reviveTimer -= dt;
+            if (h.reviveTimer <= 0) {
+              h.isReviving = false;
+              h.hp = Math.round(h.maxHp * 0.28);
+              h.shield = 600;
+              visualEffects.push({ type: 'shockwave', x: h.x, y: h.y, color: '#f1c40f', radius: 45, life: 0.4 });
+              damageNumbers.push({ x: h.x, y: h.y - 30, text: '🛡️ REVIVED!', color: '#f1c40f', life: 1.0 });
+              logCommentary(`✨ IMMORTALITY! ${h.playerName} (${h.heroName}) bangkit kembali dari kematian!`, 'highlight');
+            }
+            return;
+          }
+
+          // Feature 1: Winter Crown Freeze timer
+          if (h.isFrozenInvulnerable) {
+            h.frozenTimer -= dt;
+            if (h.frozenTimer <= 0) {
+              h.isFrozenInvulnerable = false;
+            }
+            return; // Invulnerable in ice block!
+          }
+
+          // Feature 1: Wind of Nature timer
+          if (h.wonActive) {
+            h.wonTimer -= dt;
+            if (h.wonTimer <= 0) {
+              h.wonActive = false;
+            }
+          }
+
           if (h.isDead) {
             h.respawnTimer -= dt * 3.5;
             if (h.respawnTimer <= 0) {
@@ -465,10 +501,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             return;
           }
 
-          // Feature 1: Buff Aura rotation
+          // Buff Aura rotation
           h.buffAuraAngle = (h.buffAuraAngle || 0) + 3.5 * dt;
 
-          // Feature 2: Crowd Control Stun duration timer
+          // Crowd Control Stun duration timer
           if (h.ccTimer > 0) {
             h.ccTimer -= dt;
             if (h.ccTimer <= 0) {
@@ -499,7 +535,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             if (it.stats.hp) itemHpBonus += it.stats.hp;
           });
 
-          // Buff bonus (Red Buff gives +20 Atk, Blue Buff gives fast attack)
           const buffBonus = (h.hasRedBuff ? 25 : 0);
           h.maxHp = 1150 + (h.level * 140) + (h.hero.stats.frontline * 10) + itemHpBonus;
           h.atk = 95 + (h.level * 12) + (h.hero.stats.burst * 1.4) + itemAtkBonus + buffBonus;
@@ -509,7 +544,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           h.inBush = nearBush;
 
           // Find nearest living enemy hero
-          const livingEnemies = heroes.filter(e => e.side !== h.side && !e.isDead);
+          const livingEnemies = heroes.filter(e => e.side !== h.side && !e.isDead && !e.isReviving);
           let nearestEnemy: any = null;
           let minEnemyDist = Infinity;
 
@@ -533,6 +568,26 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               life: 0.9
             });
             logCommentary(`🌿 AMBUSH! ${h.playerName} (${h.heroName}) menyergap dari semak-semak!`, 'highlight');
+          }
+
+          // Feature 1: Trigger Winter Crown if low HP
+          const hasWinter = h.items.some((it: MLBBItem) => it.id === 'winter_crown');
+          if (hasWinter && !h.winterCrownUsed && h.hp < h.maxHp * 0.25) {
+            h.winterCrownUsed = true;
+            h.isFrozenInvulnerable = true;
+            h.frozenTimer = 2.0;
+            damageNumbers.push({ x: h.x, y: h.y - 25, text: '❄️ WINTER CROWN!', color: '#74b9ff', life: 1.0 });
+            logCommentary(`❄️ WINTER CROWN! ${h.playerName} membekukan diri kebal dari semua serangan!`, 'highlight');
+            return;
+          }
+
+          // Feature 1: Trigger Wind of Nature (WoN) for Marksman
+          const hasWoN = h.items.some((it: MLBBItem) => it.id === 'wind_of_nature');
+          if (hasWoN && !h.wonActive && h.hp < h.maxHp * 0.35 && h.hero.role === 'Marksman') {
+            h.wonActive = true;
+            h.wonTimer = 2.0;
+            damageNumbers.push({ x: h.x, y: h.y - 25, text: '🍃 WIND OF NATURE!', color: '#2ecc71', life: 1.0 });
+            logCommentary(`🍃 WIND OF NATURE! ${h.playerName} kebal terhadap Physical Damage!`, 'normal');
           }
 
           // Battle Spells (Flicker on low HP, Purify/Vengeance/Aegis)
@@ -585,13 +640,19 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           const combatMult = isEnemy && draftResult.difficultyCondition ? draftResult.difficultyCondition.aiCombatMultiplier : 1.0;
           const attackIntervalMs = h.hero.role === 'Marksman' ? 400 : h.hero.role === 'Assassin' ? 480 : 620;
 
-          if (nearestEnemy && minEnemyDist <= attackRange && now - h.lastAttackTime > attackIntervalMs) {
+          if (nearestEnemy && minEnemyDist <= attackRange && now - h.lastAttackTime > attackIntervalMs && !nearestEnemy.isFrozenInvulnerable) {
             h.lastAttackTime = now;
             const isCrit = Math.random() < 0.30;
             const baseDmg = h.atk + Math.random() * 30;
-            const dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
+            let dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
 
-            // Hero Ultimate Skill Cast & Feature 2: Trigger CC Stun
+            // If target has WoN active and attack is physical, negate damage
+            if (nearestEnemy.wonActive && h.hero.damageType === 'Physical') {
+              dmg = 0;
+              damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 14, text: 'IMMUNE', color: '#2ecc71', life: 0.5 });
+            }
+
+            // Hero Ultimate Skill Cast & Trigger CC Stun
             if (now - h.lastUltTime > 12000) {
               h.lastUltTime = now;
               const ultColor = h.hero.role === 'Mage' ? '#9b59b6' : h.hero.role === 'Assassin' ? '#e74c3c' : h.hero.role === 'Tank' ? '#f39c12' : '#3498db';
@@ -611,7 +672,6 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 life: 0.9
               });
 
-              // Feature 2: Tank/Mage Stun CC on Target
               if (h.hero.role === 'Tank' || h.hero.role === 'Support' || h.hero.role === 'Mage') {
                 nearestEnemy.ccStatus = 'stunned';
                 nearestEnemy.ccTimer = 1.3;
@@ -640,16 +700,36 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               life: 0.25
             });
 
-            damageNumbers.push({
-              x: nearestEnemy.x + (Math.random() - 0.5) * 22,
-              y: nearestEnemy.y - 14,
-              text: `${isCrit ? 'CRIT ' : ''}-${dmg}`,
-              color: isCrit ? '#f1c40f' : h.side === 'blue' ? '#3498db' : '#e74c3c',
-              life: 0.7
-            });
+            if (dmg > 0) {
+              damageNumbers.push({
+                x: nearestEnemy.x + (Math.random() - 0.5) * 22,
+                y: nearestEnemy.y - 14,
+                text: `${isCrit ? 'CRIT ' : ''}-${dmg}`,
+                color: isCrit ? '#f1c40f' : h.side === 'blue' ? '#3498db' : '#e74c3c',
+                life: 0.7
+              });
+            }
 
-            // Kill Trigger & Assist Distribution
-            if (nearestEnemy.hp <= 0 && !nearestEnemy.isDead) {
+            // Feature 1: Immortality Trigger Check on Fatal Blow
+            if (nearestEnemy.hp <= 0 && !nearestEnemy.isDead && !nearestEnemy.isReviving) {
+              const hasImmortality = nearestEnemy.items.some((it: MLBBItem) => it.id === 'immortality');
+              if (hasImmortality && !nearestEnemy.immortalityUsed) {
+                nearestEnemy.immortalityUsed = true;
+                nearestEnemy.isReviving = true;
+                nearestEnemy.reviveTimer = 2.0;
+                nearestEnemy.hp = 0;
+                damageNumbers.push({
+                  x: nearestEnemy.x,
+                  y: nearestEnemy.y - 30,
+                  text: '🛡️ IMMORTALITY REVIVE!',
+                  color: '#f1c40f',
+                  life: 1.2
+                });
+                logCommentary(`🛡️ IMMORTALITY! ${nearestEnemy.playerName} (${nearestEnemy.heroName}) memasuki fase revive!`, 'highlight');
+                return;
+              }
+
+              // Real Kill Execution
               nearestEnemy.isDead = true;
               nearestEnemy.hp = 0;
               nearestEnemy.kda.d += 1;
@@ -660,7 +740,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               h.gold += 320;
               state.score[h.side as 'blue' | 'red'] += 1;
 
-              // All nearby teammates get Assists immediately!
+              // Assists distribution
               heroes.filter(t => t.side === h.side && t.id !== h.id && !t.isDead).forEach(tm => {
                 if (Math.hypot(tm.x - nearestEnemy.x, tm.y - nearestEnemy.y) < 270) {
                   tm.kda.a += 1;
@@ -668,7 +748,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 }
               });
 
-              // Trigger Sound & Animated Kill Banner
+              // Kill Banner & Announcer SFX
               let killTitle = 'ELIMINATED';
               let killSub = '';
               const totalKills = state.score.blue + state.score.red;
@@ -775,15 +855,33 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         }
 
-        // 9. Turret Pushing
+        // 9. Feature 4: Turret Pushing with Backdoor Protection
         heroes.forEach(h => {
           if (h.isDead) return;
-          const enemyTurrets = turrets.filter(t => t.side !== h.side && t.hp > 0 && Math.hypot(t.x - h.x, t.y - h.y) < 70);
+          const enemyTurrets = turrets.filter(t => t.side !== h.side && t.hp > 0 && Math.hypot(t.x - h.x, t.y - h.y) < 75);
           if (enemyTurrets.length > 0) {
             const t = enemyTurrets[0];
-            t.hp -= (h.atk * 0.7) * dt;
+            
+            // Check if friendly minions are within range (130px) to disable backdoor
+            const hasFriendlyMinions = minions.some(m => m.side === h.side && Math.hypot(m.x - t.x, m.y - t.y) < 130);
+            t.hasBackdoorShield = !hasFriendlyMinions;
+            const dmgMult = hasFriendlyMinions ? 1.0 : 0.25;
+
+            t.hp -= (h.atk * 0.7 * dmgMult) * dt;
+
+            if (!hasFriendlyMinions && Math.random() < 0.05) {
+              damageNumbers.push({
+                x: t.x,
+                y: t.y - 25,
+                text: '🛡️ BACKDOOR (-75%)',
+                color: '#f1c40f',
+                life: 0.7
+              });
+            }
+
             if (t.hp <= 0) {
               t.hp = 0;
+              t.hasBackdoorShield = false;
               state.turrets[t.side as 'blue' | 'red'] -= 1;
               logCommentary(`🏰 TURRET HANCUR! ${h.playerName} merobohkan Turret ${t.lane.toUpperCase()} milik ${t.side.toUpperCase()}!`, 'objective');
               audioMgr.playTurretDestroyed();
@@ -855,9 +953,20 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       ctx.strokeStyle = '#ff7675'; ctx.lineWidth = 3; ctx.stroke();
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('RED BASE', bases.red.x, bases.red.y + 40);
 
-      // Turrets
+      // Turrets (Feature 4: Render glowing Backdoor Defense Dome if active)
       turrets.forEach(t => {
         if (t.hp <= 0) return;
+
+        if (t.hasBackdoorShield) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, 19, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
         ctx.fillStyle = t.side === 'blue' ? '#3498db' : '#e74c3c';
         ctx.beginPath();
         ctx.arc(t.x, t.y, 10, 0, Math.PI * 2);
@@ -870,7 +979,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.fillRect(t.x - 14, t.y - 18, (t.hp / t.maxHp) * 28, 4);
       });
 
-      // Minions (Feature 3: Super Minions render larger with glowing ring)
+      // Minions
       minions.forEach(m => {
         ctx.fillStyle = m.side === 'blue' ? '#74b9ff' : '#ff7675';
         ctx.beginPath();
@@ -961,11 +1070,50 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         }
       });
 
-      // Render Heroes with Feature 1: Buff Auras & Feature 2: CC Stun Icons
+      // Render Heroes
       heroes.forEach(h => {
         if (h.isDead) return;
 
-        // Feature 1: Blue Buff & Red Buff rotating aura rings under foot
+        // Immortality Revive Golden Cocoon
+        if (h.isReviving) {
+          ctx.fillStyle = 'rgba(241, 196, 15, 0.85)';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('🛡️ REVIVE', h.x, h.y + 4);
+          return;
+        }
+
+        // Winter Crown Ice Cube
+        if (h.isFrozenInvulnerable) {
+          ctx.fillStyle = 'rgba(116, 185, 255, 0.85)';
+          ctx.fillRect(h.x - 16, h.y - 16, 32, 32);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(h.x - 16, h.y - 16, 32, 32);
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('❄️ ICE', h.x, h.y + 4);
+          return;
+        }
+
+        // Wind of Nature Green Shield Aura
+        if (h.wonActive) {
+          ctx.strokeStyle = 'rgba(46, 204, 113, 0.85)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 20, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Buff auras
         if (h.hasBlueBuff) {
           ctx.save();
           ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
@@ -1029,7 +1177,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         ctx.textAlign = 'center';
         ctx.fillText(`${h.playerName} (${h.heroName})`, h.x, h.y - 20);
 
-        // Feature 2: Crowd Control Stun Indicator
+        // CC Stun Indicator
         if (h.ccStatus === 'stunned') {
           ctx.fillStyle = '#f1c40f';
           ctx.font = 'bold 11px sans-serif';
