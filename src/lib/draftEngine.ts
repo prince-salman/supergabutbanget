@@ -182,16 +182,46 @@ export class DraftEngine {
     } else {
       const needed = this.getNeededLanes(myPicks);
       const nextRole = needed[0] || 'Jungle';
+      
+      // Check if enemy has heroes we can strongly counter
+      let counterRecommendation: Hero | null = null;
+      let counterTargetName = '';
+
+      if (enemyPicks.length > 0) {
+        for (const enemyH of enemyPicks) {
+          const directCounter = available.find(h => 
+            (h.lane === nextRole || h.secondaryLane === nextRole) && 
+            h.counters && h.counters.includes(enemyH.name)
+          );
+          if (directCounter) {
+            counterRecommendation = directCounter;
+            counterTargetName = enemyH.name;
+            break;
+          }
+        }
+      }
+
       const bestPicks = available.filter(h => (h.lane === nextRole || h.secondaryLane === nextRole) && (h.tier === 'S+' || h.tier === 'S')).slice(0, 2);
-      suggestedHeroIds = bestPicks.map(h => h.id);
+      if (counterRecommendation && !suggestedHeroIds.includes(counterRecommendation.id)) {
+        suggestedHeroIds.push(counterRecommendation.id);
+      }
+      bestPicks.forEach(h => {
+        if (!suggestedHeroIds.includes(h.id)) suggestedHeroIds.push(h.id);
+      });
+
+      let analystMsg = `Coach, prioritas kita sekarang adalah mengisi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`;
+      if (counterRecommendation) {
+        analystMsg = `💡 COUNTER-PICK DETECTED! Musuh sudah pick ${counterTargetName}. Rekomendasi tajam saya adalah ambil [${counterRecommendation.name}] untuk shut down pergerakan mereka!`;
+      }
+
       squadDiscussion.push({
         id: `asst_${Date.now()}`,
         speakerName: asstCoach.name,
         speakerRole: 'Tactical Analyst',
         avatarIcon: '💡',
-        message: `Coach, prioritas kita sekarang adalah mengisi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`,
-        suggestedHeroName: bestPicks[0]?.name,
-        suggestedHeroId: bestPicks[0]?.id
+        message: analystMsg,
+        suggestedHeroName: counterRecommendation?.name || bestPicks[0]?.name,
+        suggestedHeroId: counterRecommendation?.id || bestPicks[0]?.id
       });
     }
 
@@ -369,26 +399,43 @@ export class DraftEngine {
     const enemySide = side === 'blue' ? 'red' : 'blue';
     const myPicks = side === 'blue' ? this.bluePicks : this.redPicks;
     const enemyPicks = side === 'blue' ? this.redPicks : this.bluePicks;
+    const enemyTeam = enemySide === 'blue' ? this.blueTeam : this.redTeam;
 
     if (phase === 'ban') {
       if (this.turnIndex < 6) {
+        // Phase 1 Ban: Ban Opponent's S+ Signature Heroes or Priority OP Meta
+        const enemySignatures = availableHeroes.filter(h => 
+          (h.tier === 'S+' || h.tier === 'S') && 
+          enemyTeam.roster.some(p => p.signature.includes(h.name))
+        );
+        if (enemySignatures.length > 0) {
+          return enemySignatures[Math.floor(Math.random() * enemySignatures.length)];
+        }
         const sPlus = availableHeroes.filter(h => h.tier === 'S+');
         if (sPlus.length > 0) {
-          const enemyTeam = enemySide === 'blue' ? this.blueTeam : this.redTeam;
-          const signatureTarget = sPlus.find(h => enemyTeam.roster.some(p => p.signature.includes(h.name)));
-          return signatureTarget || sPlus[Math.floor(Math.random() * sPlus.length)];
+          return sPlus[Math.floor(Math.random() * sPlus.length)];
         }
       } else {
+        // Phase 2 Ban: Target Ban Opponent's missing roles & signatures!
         const enemyNeededRoles = this.getNeededLanes(enemyPicks);
-        const targetBans = availableHeroes.filter(h => enemyNeededRoles.includes(h.lane) && (h.tier === 'S+' || h.tier === 'S'));
-        if (targetBans.length > 0) {
-          return targetBans[Math.floor(Math.random() * targetBans.length)];
+        const targetedMissingBans = availableHeroes.filter(h => 
+          enemyNeededRoles.includes(h.lane) && 
+          (h.tier === 'S+' || h.tier === 'S' || h.tier === 'A+') &&
+          enemyTeam.roster.some(p => p.role === h.lane && p.signature.includes(h.name))
+        );
+        if (targetedMissingBans.length > 0) {
+          return targetedMissingBans[0];
+        }
+        const generalMissingBans = availableHeroes.filter(h => enemyNeededRoles.includes(h.lane) && (h.tier === 'S+' || h.tier === 'S'));
+        if (generalMissingBans.length > 0) {
+          return generalMissingBans[Math.floor(Math.random() * generalMissingBans.length)];
         }
       }
       const tierS = availableHeroes.filter(h => h.tier === 'S+' || h.tier === 'S');
       return tierS.length > 0 ? tierS[Math.floor(Math.random() * tierS.length)] : availableHeroes[0];
     }
 
+    // Phase Pick: Smart Counter-Pick & Synergy Optimizer
     const neededLanes = this.getNeededLanes(myPicks);
     let candidates = availableHeroes.filter(h => neededLanes.includes(h.lane) || (h.secondaryLane && neededLanes.includes(h.secondaryLane)));
 
@@ -398,32 +445,94 @@ export class DraftEngine {
 
     let scored = candidates.map(hero => {
       let score = 0;
-      const hasSignaturePlayer = myTeam.roster.some(p => p.signature.includes(hero.name));
+      
+      // 1. Signature Hero Bonus
+      const hasSignaturePlayer = myTeam.roster.some(p => p.role === hero.lane && p.signature.includes(hero.name));
       if (hasSignaturePlayer) score += 35;
 
-      if (hero.tier === 'S+') score += 30;
-      else if (hero.tier === 'S') score += 20;
-      else if (hero.tier === 'A') score += 12;
+      // 2. Base Tier Power
+      if (hero.tier === 'S+') score += 32;
+      else if (hero.tier === 'S') score += 22;
+      else if (hero.tier === 'A+') score += 16;
+      else if (hero.tier === 'A') score += 10;
 
+      // 3. Deep Tactical Counter-Pick Intelligence
       enemyPicks.forEach(enemyHero => {
-        if (hero.counters && hero.counters.includes(enemyHero.name)) score += 18;
-        if (hero.counteredBy && hero.counteredBy.includes(enemyHero.name)) score -= 12;
+        // Direct counter list check
+        if (hero.counters && hero.counters.includes(enemyHero.name)) {
+          score += 45; // Heavy priority counter-pick!
+        }
+        if (hero.counteredBy && hero.counteredBy.includes(enemyHero.name)) {
+          score -= 32; // Avoid being counter-picked!
+        }
+
+        // Anti-Mobility Counter Check
+        const isEnemyMobile = ['Fanny', 'Ling', 'Joy', 'Lancelot', 'Benedetta', 'Harith', 'Suyou', 'Nolan', 'Hayabusa', 'Hirara'].includes(enemyHero.name);
+        if (isEnemyMobile) {
+          if (['Khufra', 'Minsitthar', 'Kaja', 'Franco', 'Phoveus', 'Ruby', 'Chou', 'Akai', 'Saber', 'Kalea'].includes(hero.name)) {
+            score += 42;
+          }
+        }
+
+        // Anti-Heal / Anti-Sustain Counter Check
+        const isEnemyHealer = ['Estes', 'Floryn', 'Rafaela', 'Uranus', 'Fredrinn', 'Barats', 'Hylos', 'Kalea'].includes(enemyHero.name);
+        if (isEnemyHealer) {
+          if (['Baxia', 'Luo Yi', 'Carmilla', 'Dyrroth', 'Lunox', 'Valir', 'Karrie'].includes(hero.name)) {
+            score += 40;
+          }
+        }
+
+        // Anti-Marksman / Anti-Projectile Counter Check
+        const isEnemyBasicMM = ['Claude', 'Beatrix', 'Moskov', 'Bruno', 'Karrie', 'Wanwan', 'Miya', 'Layla', 'Irithel', 'Obsidia'].includes(enemyHero.name);
+        if (isEnemyBasicMM) {
+          if (['Lolita', 'Belerick', 'Gatotkaca', 'Saber', 'Chou', 'Hayabusa', 'Marcel'].includes(hero.name)) {
+            score += 38;
+          }
+        }
+
+        // Anti-Artillery Mage Counter Check
+        const isEnemyArtillery = ['Pharsa', 'Novaria', 'Yve', 'Xavier', 'Cecilion', 'Gord', 'Zetian', 'Odette'].includes(enemyHero.name);
+        if (isEnemyArtillery) {
+          if (['Ling', 'Hayabusa', 'Nolan', 'Suyou', 'Yu Zhong', 'Joy', 'Lancelot', 'Hirara', 'Sora'].includes(hero.name)) {
+            score += 38;
+          }
+        }
+
+        // Anti-Big CC Teamfight Counter Check
+        const isEnemyHardCC = ['Atlas', 'Tigreal', 'Minotaur', 'Terizla', 'Grock', 'Kalea'].includes(enemyHero.name);
+        if (isEnemyHardCC) {
+          if (['Diggie', 'Kadita', 'Valir', 'Akai', 'Wanwan', 'Gloo'].includes(hero.name)) {
+            score += 40;
+          }
+        }
       });
 
+      // 4. Team Synergy & Composition Balance
       const currentStats = this.calculateTeamStats(myPicks);
-      if (currentStats.frontline < 50 && (hero.stats.frontline > 75 || hero.lane === 'EXP' || hero.lane === 'Roam')) {
-        score += 15;
+      if (currentStats.frontline < 50 && (hero.stats.frontline > 75 || hero.lane === 'EXP' || hero.lane === 'Roam' || hero.role === 'Tank')) {
+        score += 22;
       }
       if (currentStats.cc < 50 && hero.stats.cc > 80) {
-        score += 15;
+        score += 22;
+      }
+      if (currentStats.waveclear < 50 && hero.stats.waveclear > 85) {
+        score += 16;
+      }
+
+      // Hybrid Damage Check
+      const hasPhysical = myPicks.some(p => p.damageType === 'Physical');
+      const hasMagic = myPicks.some(p => p.damageType === 'Magic');
+      if (myPicks.length >= 3) {
+        if (!hasPhysical && hero.damageType === 'Physical') score += 20;
+        if (!hasMagic && hero.damageType === 'Magic') score += 20;
       }
 
       return { hero, score };
     });
 
     scored.sort((a, b) => b.score - a.score);
-    const topChoices = scored.slice(0, Math.min(3, scored.length));
-    return topChoices[Math.floor(Math.random() * topChoices.length)].hero;
+    const topChoices = scored.slice(0, Math.min(2, scored.length));
+    return topChoices[0]?.hero || availableHeroes[0];
   }
 
   getNeededLanes(currentPicks: Hero[]): LaneRole[] {
