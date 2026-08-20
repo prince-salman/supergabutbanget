@@ -1,9 +1,17 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'MPL ID Coach Simulator 2026 - Mobile Legends',
   description: 'Game simulasi Head Coach Mobile Legends Bang Bang MPL Indonesia dengan aturan 10-Ban, 2D Match Engine, Playoffs & Malam Penghargaan Awards Gala.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#680008',
 };
 
 export default function RootLayout({
