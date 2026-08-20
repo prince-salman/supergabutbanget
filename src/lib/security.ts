@@ -89,7 +89,7 @@ export const safeStorage = {
       const parsed = JSON.parse(raw);
       // Ensure parsed object is not null/malicious prototype injection
       if (parsed && typeof parsed === 'object') {
-        if ('__proto__' in parsed || 'constructor' in parsed) {
+        if (Object.prototype.hasOwnProperty.call(parsed, '__proto__')) {
           console.warn('Security Alert: Malicious prototype payload detected in localStorage.');
           window.localStorage.removeItem(key);
           return null;

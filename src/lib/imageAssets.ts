@@ -105,82 +105,100 @@ export function getItemImageUrl(itemId: string, itemName?: string): string {
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${cleanName}&backgroundColor=111926`;
 }
 
-// Pro Player Photo mapping
+// Official Pro Player & Coach Photo mapping from id-mpl.com
 export const OFFICIAL_PLAYER_PHOTO_MAP: Record<string, string> = {
-  // Alter Ego
-  gebe: "/images/players/ae_gebe.png",
-  reyyy: "/images/players/ae_reyyy.png",
-  rounde: "/images/players/ae_rounde.png",
-  cyrus: "/images/players/ae_cyrus.png",
-  hijume: "/images/players/ae_hijume.png",
+  // Alter Ego (AE)
   nino: "/images/players/ae_nino.png",
-  owen: "/images/players/ae_owen.png",
-  alvar: "/images/players/ae_alvar.png",
-  starrr: "/images/players/ae_starrr.png",
-  crush: "/images/players/ae_crush.png",
+  reyy: "/images/players/ae_reyy.png",
+  dalvin: "/images/players/ae_dalvin.png",
+  dingarai: "/images/players/ae_dingarai.png",
+  alexander: "/images/players/ae_alexander.png",
+  affan: "/images/players/ae_affan.png",
+  halim: "/images/players/ae_halim.png",
+  ivann: "/images/players/ae_ivann.png",
+  ivan: "/images/players/ae_ivann.png",
+  xepher: "/images/players/ae_xepher.png",
+  coachxepher: "/images/players/ae_xepher.png",
+  styx: "/images/players/ae_styx.png",
+  analyststyx: "/images/players/ae_styx.png",
 
-  // Bigetron
-  superluke: "/images/players/btr_superluke.png",
-  luke: "/images/players/btr_superluke.png",
-  finn: "/images/players/btr_finn.png",
-  annisa: "/images/players/btr_annisa.png",
-  meyden: "/images/players/btr_meyden.png",
-  chel: "/images/players/btr_chel.png",
-  cinny: "/images/players/btr_cinny.png",
-  fumi: "/images/players/btr_fumi.png",
-  vivian: "/images/players/btr_vivian.png",
+  // Bigetron Alpha (BTR)
+  shogun: "/images/players/btr_shogun.png",
+  nnael: "/images/players/btr_nnael.png",
   moreno: "/images/players/btr_moreno.png",
-  kyy: "/images/players/btr_kyy.png",
+  morenooo: "/images/players/btr_moreno.png",
+  eman: "/images/players/btr_eman.png",
+  emann: "/images/players/btr_eman.png",
+  finn: "/images/players/btr_finn.png",
+  miguel: "/images/players/btr_miguel.png",
+  kdot: "/images/players/btr_kdot.png",
+  coachkdot: "/images/players/btr_kdot.png",
+  her: "/images/players/btr_her.png",
+  analysther: "/images/players/btr_her.png",
 
-  // Dewa United
-  potexx: "/images/players/dewa_potexx.png",
-  mugi: "/images/players/dewa_mugi.png",
-  gideon: "/images/players/dewa_gideon.png",
-  shining: "/images/players/dewa_shining.png",
-  aliyy: "/images/players/dewa_aliyy.png",
-  superkenny: "/images/players/dewa_superkenny.png",
-  nathan: "/images/players/dewa_nathan.png",
-  tatsuya: "/images/players/dewa_tatsuya.png",
-  brayyy: "/images/players/dewa_brayyy.png",
+  // Dewa United Esports (DEWA)
+  qinn: "/images/players/dewa_qinn.png",
+  kayn: "/images/players/dewa_kayn.png",
   octa: "/images/players/dewa_octa.png",
-  rayy: "/images/players/dewa_rayy.png",
+  maybeee: "/images/players/dewa_maybeee.png",
+  maybee: "/images/players/dewa_maybeee.png",
+  itoshi: "/images/players/dewa_itoshi20kesu.png",
+  itoshikesu: "/images/players/dewa_itoshi20kesu.png",
+  rulgood: "/images/players/dewa_rul20good.png",
+  rul: "/images/players/dewa_rul20good.png",
+  coachright: "/images/players/dewa_coach20right.png",
+  right: "/images/players/dewa_coach20right.png",
+  laufeyson: "/images/players/dewa_laufeyson.png",
+  analystlaufeyson: "/images/players/dewa_laufeyson.png",
 
-  // EVOS Glory
-  saykots: "/images/players/evos_saykots.png",
-  wrecker: "/images/players/evos_wrecker.png",
+  // EVOS Glory (EVOS)
   vell: "/images/players/evos_vell.png",
-  rendyyy: "/images/players/evos_rendyyy.png",
   alberttt: "/images/players/evos_alberttt.png",
+  albert: "/images/players/evos_alberttt.png",
   drianw: "/images/players/evos_drianw.png",
+  drian: "/images/players/evos_drianw.png",
   erlan: "/images/players/evos_erlan.png",
   muezza: "/images/players/evos_muezza.png",
+  rendyyy: "/images/players/evos_rendyyy.png",
+  rendy: "/images/players/evos_rendyyy.png",
   aldo: "/images/players/evos_aldo.png",
+  coachaldo: "/images/players/evos_aldo.png",
   bravo: "/images/players/evos_bravo.png",
+  analystbravo: "/images/players/evos_bravo.png",
 
-  // Geek Fam ID
+  // Geek Fam ID (GEEK)
   marcel: "/images/players/geek_marcel.png",
-  febriii: "/images/players/geek_febriii.png",
   nazara: "/images/players/geek_nazara.png",
   aboy: "/images/players/geek_aboy.png",
   aboyy: "/images/players/geek_aboy.png",
   kennzyyskie: "/images/players/geek_kennzyskie.png",
+  kennzyskie: "/images/players/geek_kennzyskie.png",
   audytzy: "/images/players/geek_audytzy.png",
+  febri: "/images/players/geek_febriii.png",
+  febriii: "/images/players/geek_febriii.png",
   erpang: "/images/players/geek_erpang.png",
+  coacherpang: "/images/players/geek_erpang.png",
   vivy: "/images/players/geek_vivy.png",
+  analystvivy: "/images/players/geek_vivy.png",
 
-  // NAVI
+  // NAVI Esports (NAVI)
   karss: "/images/players/navi_karss.png",
-  febbb: "/images/players/navi_febbb.png",
   andoryuuu: "/images/players/navi_andoryuuu.png",
+  andoryu: "/images/players/navi_andoryuuu.png",
   jiize: "/images/players/navi_jiize.png",
   jiizee: "/images/players/navi_jiize.png",
   zeonn: "/images/players/navi_zeonn.png",
+  zeon: "/images/players/navi_zeonn.png",
   aprho: "/images/players/navi_aprho.png",
+  febbb: "/images/players/navi_febbb.png",
+  feb: "/images/players/navi_febbb.png",
   ynot: "/images/players/navi_ynot.png",
-  jacklee: "/images/players/navi_jacklee.png",
+  coachynot: "/images/players/navi_ynot.png",
   han: "/images/players/navi_han.png",
+  analysthan: "/images/players/navi_han.png",
+  jacklee: "/images/players/navi_jacklee.png",
 
-  // Fnatic ONIC
+  // Fnatic ONIC (ONIC)
   lutpi: "/images/players/onic_lutpi.png",
   lutpiii: "/images/players/onic_lutpi.png",
   kairi: "/images/players/onic_kairi.png",
@@ -189,20 +207,24 @@ export const OFFICIAL_PLAYER_PHOTO_MAP: Record<string, string> = {
   kiboy: "/images/players/onic_kiboy.png",
   ssamuel: "/images/players/onic_ssamuel.png",
   cw: "/images/players/onic_cw.png",
+  coachcw: "/images/players/onic_cw.png",
 
-  // RRQ Hoshi
+  // RRQ Hoshi (RRQ)
   joshua: "/images/players/rrq_joshua.png",
   demonkite: "/images/players/rrq_demonkite.png",
   hajirin: "/images/players/rrq_hajirin.png",
   arthur: "/images/players/rrq_arthur.png",
   said: "/images/players/rrq_said.png",
-  habil: "/images/players/rrq_habil.png",
+  clay: "/images/players/rrq_clayy.png",
   clayy: "/images/players/rrq_clayy.png",
   clayyy: "/images/players/rrq_clayy.png",
-  adi: "/images/players/rrq_adi.png",
+  habil: "/images/players/rrq_habil.png",
   kayleb: "/images/players/rrq_kayleb.png",
+  coachkayleb: "/images/players/rrq_kayleb.png",
+  adi: "/images/players/rrq_adi.png",
+  analystadi: "/images/players/rrq_adi.png",
 
-  // Team Liquid ID
+  // Team Liquid ID (TLID)
   aran: "/images/players/tlid_aran.png",
   kevin: "/images/players/tlid_kevin.png",
   drichel: "/images/players/tlid_drichel.png",
@@ -210,8 +232,10 @@ export const OFFICIAL_PLAYER_PHOTO_MAP: Record<string, string> = {
   keven: "/images/players/tlid_keven.png",
   lyoni: "/images/players/tlid_lyoni.png",
   honjaw: "/images/players/tlid_honjaw.png",
-  pahlevi: "/images/players/tlid_pahlevi.png",
-  facehugger: "/images/players/tlid_facehugger.png"
+  coachhonjaw: "/images/players/tlid_honjaw.png",
+  facehugger: "/images/players/tlid_facehugger.png",
+  analystfacehugger: "/images/players/tlid_facehugger.png",
+  pahlevi: "/images/players/tlid_pahlevi.png"
 };
 
 /**
