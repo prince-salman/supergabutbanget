@@ -679,16 +679,9 @@ export default function Home() {
       </div>
 
       {/* Official MPL Footer */}
-      <footer className="bg-white border-t border-gray-200 py-6 px-4 text-center text-xs text-gray-500 font-mono">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[#680008] font-mpl-title">MPL ID COACH SIMULATOR 2026</span>
-            <span>•</span>
-            <span>All 9 MPL ID Franchises Licensed</span>
-          </div>
-          <div>
-            Built with Next.js 14, Tailwind CSS & HTML5 Canvas
-          </div>
+      <footer className="bg-white border-t border-gray-200 py-5 px-4 text-center text-xs text-gray-500 font-mono">
+        <div className="max-w-7xl mx-auto flex justify-center items-center">
+          <span className="font-bold text-[#680008] font-mpl-title tracking-wider">MPL ID COACH SIMULATOR 2026</span>
         </div>
       </footer>
     </div>
