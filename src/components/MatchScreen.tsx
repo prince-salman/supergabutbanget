@@ -167,10 +167,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         baseX: basePos.x,
         baseY: basePos.y,
         laneTarget: targetPos,
-        hp: 2200 + assignment.hero.stats.frontline * 18,
-        maxHp: 2200 + assignment.hero.stats.frontline * 18,
+        hp: 1450 + assignment.hero.stats.frontline * 10,
+        maxHp: 1450 + assignment.hero.stats.frontline * 10,
         shield: 0,
-        atk: 75 + assignment.hero.stats.burst * 0.9,
+        atk: 110 + assignment.hero.stats.burst * 1.3,
         level: 1,
         gold: 300,
         items: [] as MLBBItem[],
@@ -648,8 +648,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           });
 
           const buffBonus = (h.hasRedBuff ? 20 : 0);
-          h.maxHp = 2200 + (h.level * 220) + (h.hero.stats.frontline * 18) + itemHpBonus;
-          h.atk = 75 + (h.level * 12) + (h.hero.stats.burst * 1.1) + itemAtkBonus + buffBonus;
+          h.maxHp = 1450 + (h.level * 180) + (h.hero.stats.frontline * 10) + itemHpBonus;
+          h.atk = 110 + (h.level * 20) + (h.hero.stats.burst * 1.3) + itemAtkBonus + buffBonus;
 
           // Bush Camouflage / Stealth
           const nearBush = bushes.some(b => Math.hypot(b.x - h.x, b.y - h.y) < 22);
@@ -668,17 +668,17 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           });
 
-          // 🛡️ SMART RETREAT & RECALL AI: Low HP (<30%) retreats towards friendly turret
-          if (h.hp < h.maxHp * 0.30 && !h.isRecalling) {
+          // 🛡️ SMART RETREAT & RECALL AI: Low HP (<20%) retreats towards friendly turret
+          if (h.hp < h.maxHp * 0.20 && !h.isRecalling) {
             const friendlyTurrets = turrets.filter(t => t.side === h.side && t.hp > 0);
             const safeTarget = friendlyTurrets[0] || { x: h.baseX, y: h.baseY };
             h.targetX = safeTarget.x;
             h.targetY = safeTarget.y;
 
             const distToSafe = Math.hypot(safeTarget.x - h.x, safeTarget.y - h.y);
-            if (distToSafe < 50 && (!nearestEnemy || minEnemyDist > 80)) {
+            if (distToSafe < 50 && (!nearestEnemy || minEnemyDist > 100)) {
               h.isRecalling = true;
-              h.recallTimer = 3.5;
+              h.recallTimer = 4.0;
               damageNumbers.push({ x: h.x, y: h.y - 25, text: '🛡️ RECALLING...', color: '#00cec9', life: 0.8 });
               logCommentary(`💨 ${h.playerName} (${h.heroName}) mundur ke turret & RECALL ke Base!`, 'normal');
               return;
@@ -898,17 +898,17 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
 
           // Combat Attack Execution with Realistic Cooldowns & Armor Mitigation
-          const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 125 : 55;
+          const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 135 : 70;
           const isEnemy = h.side !== userSide;
           const combatMult = isEnemy && draftResult.difficultyCondition ? draftResult.difficultyCondition.aiCombatMultiplier : 1.0;
-          const attackIntervalMs = h.hero.role === 'Marksman' ? 850 : h.hero.role === 'Assassin' ? 950 : h.hero.role === 'Mage' ? 1100 : 1250;
+          const attackIntervalMs = h.hero.role === 'Marksman' ? 750 : h.hero.role === 'Assassin' ? 800 : h.hero.role === 'Mage' ? 900 : 1050;
 
           if (nearestEnemy && minEnemyDist <= attackRange && now - h.lastAttackTime > attackIntervalMs && !nearestEnemy.isFrozenInvulnerable) {
             h.lastAttackTime = now;
 
             // Skill Miss / Dodging Animation (High Mobility Heroes)
             const isMobileHero = ['Assassin', 'Fighter'].includes(nearestEnemy.hero.role);
-            if (isMobileHero && Math.random() < 0.15) {
+            if (isMobileHero && Math.random() < 0.10) {
               audioMgr.playDodge();
               damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 20, text: '⚡ DODGE!', color: '#bdc3c7', life: 0.6 });
               visualEffects.push({ type: 'shockwave', x: nearestEnemy.x, y: nearestEnemy.y, color: '#ecf0f1', radius: 25, life: 0.2 });
@@ -930,21 +930,24 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
 
             // Realistic Armor Reduction Formula: 100 / (100 + targetArmor)
-            const targetArmor = 25 + nearestEnemy.level * 4;
+            const targetArmor = 20 + nearestEnemy.level * 3;
             const dmgReduction = 100 / (100 + targetArmor);
             const isCrit = Math.random() < 0.25;
-            const baseDmg = h.atk + Math.random() * 20;
-            let dmg = Math.round((isCrit ? baseDmg * 1.8 : baseDmg) * dmgReduction * combatMult);
+            const baseDmg = h.atk + Math.random() * 25;
+            let dmg = Math.round((isCrit ? baseDmg * 1.75 : baseDmg) * dmgReduction * combatMult);
 
             if (nearestEnemy.wonActive && h.hero.damageType === 'Physical') {
               dmg = 0;
               damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 14, text: 'IMMUNE', color: '#2ecc71', life: 0.5 });
             }
 
-            // Ultimate Skill Cast & Trigger CC Stun
-            if (now - h.lastUltTime > 15000) {
+            // Ultimate Skill Cast & Burst Damage Trigger
+            if (now - h.lastUltTime > 12000) {
               h.lastUltTime = now;
               const ultColor = h.hero.role === 'Mage' ? '#9b59b6' : h.hero.role === 'Assassin' ? '#e74c3c' : h.hero.role === 'Tank' ? '#f39c12' : '#3498db';
+              const ultBurst = Math.round((280 + h.level * 45 + h.hero.stats.burst * 2.2) * dmgReduction);
+              dmg += ultBurst;
+
               visualEffects.push({
                 type: 'ult_circle',
                 x: nearestEnemy.x,
@@ -956,7 +959,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               damageNumbers.push({
                 x: h.x,
                 y: h.y - 32,
-                text: `💥 [ULTIMATE ${h.heroName.toUpperCase()}]`,
+                text: `💥 [ULTIMATE ${h.heroName.toUpperCase()}] (+${ultBurst})`,
                 color: '#f1c40f',
                 life: 0.9
               });
@@ -973,6 +976,13 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 });
                 logCommentary(`💫 CROWD CONTROL! ${h.playerName} memberikan efek STUN kepada ${nearestEnemy.playerName}!`, 'highlight');
               }
+            }
+
+            // Cancel enemy recall if they take damage
+            if (nearestEnemy.isRecalling) {
+              nearestEnemy.isRecalling = false;
+              nearestEnemy.recallTimer = 0;
+              damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 18, text: '❌ RECALL CANCELLED!', color: '#e74c3c', life: 0.7 });
             }
 
             nearestEnemy.hp -= dmg;
