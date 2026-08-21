@@ -1202,10 +1202,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         const blueDeadCount = heroes.filter(h => h.side === 'blue' && h.isDead).length;
         const redDeadCount = heroes.filter(h => h.side === 'red' && h.isDead).length;
 
-        if (bases.blue.hp <= 0 || (state.gameTime > 550 && redDeadCount >= 4 && state.score.blue >= 12)) {
+        if (bases.red.hp <= 0 || (state.gameTime > 550 && redDeadCount >= 4 && state.score.blue >= 12)) {
           isGameOver = true;
           finishMatch('blue');
-        } else if (bases.red.hp <= 0 || (state.gameTime > 550 && blueDeadCount >= 4 && state.score.red >= 12)) {
+        } else if (bases.blue.hp <= 0 || (state.gameTime > 550 && blueDeadCount >= 4 && state.score.red >= 12)) {
           isGameOver = true;
           finishMatch('red');
         }
