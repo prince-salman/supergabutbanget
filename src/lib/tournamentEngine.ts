@@ -18,7 +18,7 @@ export class TournamentEngine {
   public teams: Team[];
   public userTeamId: string;
   public currentWeek: number = 1;
-  public totalWeeks: number = 8;
+  public totalWeeks: number = 9;
   public stage: 'regular' | 'playoffs' | 'awards' | 'completed' = 'regular';
 
   public playerStats: Record<string, PlayerSeasonStats> = {};
@@ -125,19 +125,51 @@ export class TournamentEngine {
   }
 
   generateSchedule(): ScheduleMatch[] {
-    const schedule: ScheduleMatch[] = [];
     const teamIds = this.teams.map(t => t.id);
+    const slots = [...teamIds, 'BYE'];
+    const totalRounds = slots.length - 1; // 9 rounds
+    const singleRRRounds: [string, string][][] = [];
+
+    let currentSlots = [...slots];
+    for (let r = 0; r < totalRounds; r++) {
+      const roundMatches: [string, string][] = [];
+      for (let i = 0; i < currentSlots.length / 2; i++) {
+        const home = currentSlots[i];
+        const away = currentSlots[currentSlots.length - 1 - i];
+        if (home !== 'BYE' && away !== 'BYE') {
+          roundMatches.push([home, away]);
+        }
+      }
+      singleRRRounds.push(roundMatches);
+
+      // Rotate slots keeping slot[0] fixed (Berger algorithm)
+      const fixed = currentSlots[0];
+      const rest = currentSlots.slice(1);
+      const last = rest.pop()!;
+      currentSlots = [fixed, last, ...rest];
+    }
+
+    const schedule: ScheduleMatch[] = [];
     let matchIdCounter = 1;
 
-    for (let w = 1; w <= this.totalWeeks; w++) {
-      const matchups: [string, string][] = [];
-      const shuffled = [...teamIds].sort(() => Math.random() - 0.5);
+    for (let w = 1; w <= 9; w++) {
+      const rA_idx = (2 * w - 2);
+      const rB_idx = (2 * w - 1);
 
-      for (let i = 0; i < shuffled.length - 1; i += 2) {
-        matchups.push([shuffled[i], shuffled[i + 1]]);
-      }
+      const getMatchesForRoundIndex = (idx: number): [string, string][] => {
+        if (idx < 9) {
+          return singleRRRounds[idx];
+        } else {
+          // Leg 2 (reverse home/away sides so teams meet twice)
+          return singleRRRounds[idx - 9].map(([h, a]) => [a, h]);
+        }
+      };
 
-      matchups.forEach(([homeId, awayId]) => {
+      const matchesA = getMatchesForRoundIndex(rA_idx);
+      const matchesB = getMatchesForRoundIndex(rB_idx);
+      const weekMatches = [...matchesA, ...matchesB];
+
+      weekMatches.forEach(([homeId, awayId]) => {
         schedule.push({
           id: matchIdCounter++,
           week: w,
