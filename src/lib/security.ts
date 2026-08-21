@@ -67,6 +67,28 @@ export class ActionRateLimiter {
 }
 
 export const globalRateLimiter = new ActionRateLimiter();
+/**
+ * Deep Prototype Pollution Scrubber
+ * Recursively deletes dangerous keys (__proto__, constructor, prototype) from objects
+ */
+export function scrubDangerousKeys<T>(data: T): T {
+  if (!data || typeof data !== 'object') return data;
+  if (Array.isArray(data)) {
+    data.forEach(item => scrubDangerousKeys(item));
+    return data;
+  }
+  const obj = data as Record<string, any>;
+  delete obj['__proto__'];
+  delete obj['constructor'];
+  delete obj['prototype'];
+
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === 'object' && obj[key] !== null) {
+      scrubDangerousKeys(obj[key]);
+    }
+  }
+  return obj as T;
+}
 
 /**
  * Secure Local Storage Wrapper with structural integrity check & error containment
@@ -75,8 +97,8 @@ export const safeStorage = {
   save(key: string, data: unknown): boolean {
     if (typeof window === 'undefined') return false;
     try {
-      // Basic Prototype pollution defense
-      const serialized = JSON.stringify(data);
+      const cleanData = scrubDangerousKeys(JSON.parse(JSON.stringify(data)));
+      const serialized = JSON.stringify(cleanData);
       window.localStorage.setItem(key, serialized);
       return true;
     } catch (e) {
@@ -92,13 +114,8 @@ export const safeStorage = {
       if (!raw) return null;
 
       const parsed = JSON.parse(raw);
-      // Ensure parsed object is not null/malicious prototype injection
       if (parsed && typeof parsed === 'object') {
-        if (Object.prototype.hasOwnProperty.call(parsed, '__proto__')) {
-          console.warn('Security Alert: Malicious prototype payload detected in localStorage.');
-          window.localStorage.removeItem(key);
-          return null;
-        }
+        scrubDangerousKeys(parsed);
       }
 
       if (validateFn && !validateFn(parsed)) {

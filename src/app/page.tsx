@@ -17,7 +17,7 @@ import {
 import { MPL_TEAMS } from '@/lib/data/teams';
 import { TournamentEngine } from '@/lib/tournamentEngine';
 import { DraftEngine } from '@/lib/draftEngine';
-import { safeStorage, sanitizeInputText } from '@/lib/security';
+import { safeStorage, sanitizeInputText, scrubDangerousKeys } from '@/lib/security';
 import { rollRandomMatchDifficulty } from '@/lib/matchDifficulty';
 import { generateMatchDeskAnalysis } from '@/lib/casterDeskEngine';
 import { detectDerby, generateTrashTalkOptions } from '@/lib/derbyEngine';
@@ -254,25 +254,32 @@ export default function Home() {
     dlAnchor.remove();
   };
 
-  // Import / Restore Save File from an uploaded .json
+  // Import / Restore Save File from an uploaded .json (with Cyber-Defense verification)
   const handleImportSave = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Security: Check max file size (2 MB limit)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('❌ Ukuran file melebihi batas keamanan (Maksimal 2 MB).');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const content = event.target?.result as string;
         const parsed = JSON.parse(content);
-        if (parsed && parsed.userTeamId) {
-          applyLoadedCareer(parsed);
+        if (parsed && typeof parsed === 'object' && parsed.userTeamId) {
+          const cleanParsed = scrubDangerousKeys(parsed);
+          applyLoadedCareer(cleanParsed);
           saveCareer();
-          alert('✅ Save file berhasil dipulihkan! Selamat melanjutkan karier Coach!');
+          alert('✅ Save file berhasil diverifikasi dan dipulihkan! Selamat melanjutkan karier Coach!');
         } else {
-          alert('❌ Format file save tidak valid.');
+          alert('❌ Format file save tidak valid atau rusak.');
         }
       } catch (err) {
-        alert('❌ Gagal membaca file save JSON.');
+        alert('❌ Gagal memvalidasi file save JSON.');
       }
     };
     reader.readAsText(file);
