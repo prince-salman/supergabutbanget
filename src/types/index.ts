@@ -233,6 +233,7 @@ export interface PostMatchData {
   lords: { blue: number; red: number };
   mvp: any;
   heroes: any[];
+  bans?: any[];
   difficultyCondition?: MatchDifficultyCondition;
   seriesInfo?: MatchSeriesInfo;
 }

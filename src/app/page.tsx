@@ -529,9 +529,12 @@ export default function Home() {
 
   const handleAdvanceWeek = () => {
     if (!tournament) return;
+    const completedWeek = tournament.currentWeek;
     const res = tournament.advanceWeek();
     ensureNextMatchDifficulty(tournament);
-    newsEngine.generateWeeklyRecap(tournament.currentWeek, tournament);
+    // Generate League-wide match articles for other teams in this week!
+    newsEngine.generateAIMatchArticlesForWeek(completedWeek, tournament, userTeam?.id || '');
+    newsEngine.generateWeeklyRecap(completedWeek, tournament);
     setNewsArticles([...newsEngine.articles]);
     saveCareer();
     if (res.status === 'playoffs_started') {

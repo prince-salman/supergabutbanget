@@ -350,6 +350,16 @@ export class TournamentEngine {
       }
     });
 
+    // 2b. Update Global Hero Ban Stats
+    if (data.bans && Array.isArray(data.bans)) {
+      data.bans.forEach((b: any) => {
+        const banHeroId = typeof b === 'string' ? b : (b.id || b.heroId);
+        if (banHeroId && this.heroStats[banHeroId]) {
+          this.heroStats[banHeroId].bans += 1;
+        }
+      });
+    }
+
     // 3. Update MVP Points (+10 per Game MVP)
     if (data.mvp) {
       const mvpPlayerId = data.mvp.player?.id || data.mvp.id;
@@ -477,6 +487,20 @@ export class TournamentEngine {
     const isHomeWinner = winnerTeamId === homeTeam.id;
     addTeamSimStats(homeTeam, isHomeWinner, homeScore);
     addTeamSimStats(awayTeam, !isHomeWinner, awayScore);
+
+    // Simulate Meta 10-Hero Bans for AI vs AI Matches
+    const metaBanHeroes = [
+      'harith', 'ling', 'fanny', 'zhuxin', 'suyou', 'nolan', 
+      'hayabusa', 'valentina', 'mathilda', 'joy', 'chip', 'baxia', 
+      'tigreal', 'roger', 'julian', 'phoveus', 'helcurt', 'novaria'
+    ];
+    const shuffledBans = [...metaBanHeroes].sort(() => 0.5 - Math.random()).slice(0, 10);
+    shuffledBans.forEach(bId => {
+      const bhStat = this.heroStats[bId];
+      if (bhStat) {
+        bhStat.bans += totalGames;
+      }
+    });
   }
 
   simulateRestOfWeek() {

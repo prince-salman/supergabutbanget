@@ -1783,6 +1783,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           lords: { ...state.lords },
           mvp,
           heroes,
+          bans: [...(draftResult.blueBans || []), ...(draftResult.redBans || [])],
           difficultyCondition: draftResult.difficultyCondition
         });
       }, 2500);

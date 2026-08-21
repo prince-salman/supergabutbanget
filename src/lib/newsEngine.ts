@@ -378,7 +378,125 @@ export class NewsEngine {
     return article;
   }
 
-  // 4. Playoffs & Grand Finals News
+  // 4. League-Wide AI Match Coverage (Covers other teams across MPL ID)
+  generateAIMatchArticlesForWeek(week: number, tournament: TournamentEngine, userTeamId: string) {
+    const weekMatches = tournament.schedule.filter(m => m.week === week && m.completed && m.homeTeamId !== userTeamId && m.awayTeamId !== userTeamId && m.result);
+    if (weekMatches.length === 0) return;
+
+    // Pick top 2 standout matches to cover in news (Derby priority or 2-0 / 2-1 sweeps)
+    const sortedByHype = [...weekMatches].sort((a, b) => {
+      const hA = tournament.teams.find(t => t.id === a.homeTeamId);
+      const aA = tournament.teams.find(t => t.id === a.awayTeamId);
+      const hB = tournament.teams.find(t => t.id === b.homeTeamId);
+      const aB = tournament.teams.find(t => t.id === b.awayTeamId);
+      const repA = (hA?.reputation || 70) + (aA?.reputation || 70);
+      const repB = (hB?.reputation || 70) + (aB?.reputation || 70);
+      return repB - repA;
+    }).slice(0, 2);
+
+    sortedByHype.forEach(m => {
+      const home = tournament.teams.find(t => t.id === m.homeTeamId)!;
+      const away = tournament.teams.find(t => t.id === m.awayTeamId)!;
+      const winner = m.result!.winnerId === home.id ? home : away;
+      const loser = m.result!.winnerId === home.id ? away : home;
+      const winnerScore = m.result!.winnerId === home.id ? m.result!.homeScore : m.result!.awayScore;
+      const loserScore = m.result!.winnerId === home.id ? m.result!.awayScore : m.result!.homeScore;
+
+      const media = MEDIA_OUTLETS[Math.floor(Math.random() * MEDIA_OUTLETS.length)];
+      const isSweep = loserScore === 0;
+      
+      const tag1 = home.tag.toLowerCase();
+      const tag2 = away.tag.toLowerCase();
+      const isElClasico = (tag1.includes('rrq') && tag2.includes('evos')) || (tag1.includes('evos') && tag2.includes('rrq'));
+      const isRoyalDerby = (tag1.includes('onic') && tag2.includes('rrq')) || (tag1.includes('rrq') && tag2.includes('onic'));
+      const isDerbySTM = (tag1.includes('btr') && tag2.includes('ae')) || (tag1.includes('ae') && tag2.includes('btr'));
+      const isLiquidClash = tag1.includes('tlid') || tag2.includes('tlid');
+
+      let headline = '';
+      let subheadline = '';
+      let body: string[] = [];
+      const mvpCandidate = winner.roster[Math.floor(Math.random() * 3)] || winner.roster[0];
+
+      if (isElClasico) {
+        headline = `🔥 EL CLASICO INDONESIA: ${winner.name} Bungkam ${loser.name} ${winnerScore}-${loserScore}!`;
+        subheadline = `Sorak suporter bergemuruh saat ${mvpCandidate.name} tampil dominan membawa poin kemenangan.`;
+        body.push(`Laga legendaris El Clasico kembali tersaji di panggung Regular Season MPL ID Week ${week}. Pertandingan sarat gengsi antara ${home.name} dan ${away.name} berlangsung dengan intensitas luar biasa.`);
+      } else if (isRoyalDerby) {
+        headline = `👑 THE ROYAL DERBY: ${winner.name} Tundukkan ${loser.name} ${winnerScore}-${loserScore}!`;
+        subheadline = `Duel sengit 10-Hero Ban memperlihatkan kematangan mikro dan makro skuad ${winner.name}.`;
+        body.push(`Pertarungan The Royal Derby antara ${home.name} dan ${away.name} menyajikan tontonan kelas dunia. ${winner.name} berhasil keluar sebagai pemenang usai mengamankan momentum Lord krusial.`);
+      } else if (isDerbySTM) {
+        headline = `🥊 DERBY STM MEMBARA: ${winner.name} Hajar ${loser.name} (${winnerScore}-${loserScore})!`;
+        subheadline = `Adu mekanik berdarah antar bintang muda MPL ID berakhir untuk kemenangan ${winner.name}.`;
+        body.push(`Derby STM antara ${home.name} dan ${away.name} kembali menghadirkan duel adu mekanik tanpa henti sejak early game.`);
+      } else if (isLiquidClash) {
+        headline = `🌊 TEKANAN JUARA: ${winner.name} Taklukkan ${loser.name} ${winnerScore}-${loserScore} di Week ${week}!`;
+        subheadline = `Rotasi agresif dan kedalaman hero pool membawa ${winner.name} mendulang poin penuh.`;
+        body.push(`Laga panas tersaji antara ${home.name} dan ${away.name} pada lanjutan Week ${week}. ${winner.name} menunjukkan penguasaan tempo permainan yang luar biasa rapih.`);
+      } else {
+        headline = isSweep 
+          ? `⚡ MENANG MUTLAK! ${winner.name} Gulung ${loser.name} 2-0 Tanpa Balas!`
+          : `⚔️ DUEL 3 GAME SENGIT: ${winner.name} Taklukkan ${loser.name} 2-1 di Week ${week}!`;
+        subheadline = `Performa impresif ${mvpCandidate.name} menjadi faktor pembeda di panggung MPL ID.`;
+        body.push(`Pertandingan seru antara ${home.name} dan ${away.name} di Week ${week} berakhir dengan kemenangan ${winner.name} dengan skor ${winnerScore}-${loserScore}.`);
+      }
+
+      body.push(
+        `${mvpCandidate.name} terpilih sebagai Player of the Match setelah tampil sangat stabil mengawal lane dan memimpin kontes Lord. Kemenangan ${winnerScore}-${loserScore} ini memperkuat posisi ${winner.name} di papan klasemen sementara.`
+      );
+
+      const netizenList = [
+        {
+          id: `c_ai_${m.id}_1`,
+          username: `${winner.tag} Fanbase ID`,
+          handle: `@${winner.tag.toLowerCase()}_fans`,
+          avatar: winner.tag === 'RRQ' ? '👑' : winner.tag === 'ONIC' ? '⚡' : winner.tag === 'EVOS' ? '🐯' : '🔥',
+          timeAgo: '10m lalu',
+          content: `${mvpCandidate.name} gacor banget hari ini! Gameplay ${winner.name} lagi rapih parah! 🔥`,
+          likes: Math.floor(Math.random() * 200) + 50
+        },
+        {
+          id: `c_ai_${m.id}_2`,
+          username: 'Reza Analyst TikTok',
+          handle: '@reza_mlbbanalyst',
+          avatar: '📊',
+          timeAgo: '5m lalu',
+          content: `Draft ${winner.name} bener-bener solid, 10-ban musuh ke-counter abis. Nice match kedua tim!`,
+          likes: Math.floor(Math.random() * 150) + 30
+        }
+      ];
+
+      const article: NewsArticle = {
+        id: `news_ai_match_${m.id}_${Date.now()}`,
+        mediaOutlet: media,
+        headline,
+        subheadline,
+        category: 'match_recap',
+        categoryLabel: '🏆 LEAGUE MATCH RECAP',
+        timestamp: 'Baru Saja',
+        weekOrStage: `Week ${week}`,
+        author: `${media.name} Esports Desk`,
+        featuredTeamTag: winner.tag,
+        featuredPlayerName: mvpCandidate.name,
+        body,
+        quotes: [
+          {
+            speaker: mvpCandidate.name,
+            role: `Star Player ${winner.name}`,
+            quote: `Kami sudah mempersiapkan strategi khusus untuk match ini. Terima kasih untuk semua pendukung ${winner.name}!`
+          }
+        ],
+        netizenReactions: netizenList,
+        isUserRelated: false,
+        viewsCount: Math.floor(Math.random() * 18000) + 5000,
+        readTime: '2 min read'
+      };
+
+      this.articles.unshift(article);
+    });
+  }
+
+  // 5. Playoffs & Grand Finals News
   generatePlayoffNews(match: PlayoffMatch, coachName: string, isGrandFinal: boolean = false) {
     const media = MEDIA_OUTLETS[5]; // MPL Press
     const winner = match.winner || match.homeTeam;
