@@ -31,8 +31,9 @@ export class DraftEngine {
   public redAssignments: HeroAssignment[] = [];
 
   public turnIndex: number = 0;
-  public timer: number = 25;
+  public timer: number = 50;
   public timerInterval: any = null;
+  public isTimerPaused: boolean = false;
   public isStarted: boolean = false;
   public isCompleted: boolean = false;
   public isSwapPhase: boolean = false;
@@ -88,12 +89,23 @@ export class DraftEngine {
     if (this.isStarted) return;
     this.isStarted = true;
     this.turnIndex = 0;
-    this.timer = 25;
+    this.timer = 50;
+    this.isTimerPaused = false;
     this.isCompleted = false;
     this.isSwapPhase = false;
     this.teamConfidenceBoost = 0;
     this.commsMessages = [];
     this.startTurn();
+  }
+
+  extendTimer(seconds: number = 30) {
+    this.timer += seconds;
+    if (this.onTurnTimer) this.onTurnTimer(this.timer);
+  }
+
+  togglePauseTimer(): boolean {
+    this.isTimerPaused = !this.isTimerPaused;
+    return this.isTimerPaused;
   }
 
   getCurrentTurn(): DraftTurn | null {
@@ -122,13 +134,15 @@ export class DraftEngine {
     }
 
     if (this.timerInterval) clearInterval(this.timerInterval);
-    this.timer = 25;
+    this.timer = 50;
 
     this.generateStageComms();
 
     if (this.onStateChange) this.onStateChange();
 
     this.timerInterval = setInterval(() => {
+      if (this.isTimerPaused) return;
+
       this.timer--;
       if (this.onTurnTimer) this.onTurnTimer(this.timer);
       if (this.timer <= 5 && this.timer > 0) {

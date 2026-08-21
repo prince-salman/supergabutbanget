@@ -157,7 +157,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
           </div>
         </div>
 
-        {/* Turn Phase & Timer */}
+        {/* Turn Phase, Timer, and Pause / Extend Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="text-right">
             <div className="text-[10px] sm:text-xs font-black text-white uppercase font-mpl-title">
@@ -167,8 +167,46 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               {draftEngine.isSwapPhase ? 'HERO SWAP PHASE' : currentTurn?.phaseStage.toUpperCase() || 'FINISH'}
             </div>
           </div>
+
+          {/* Time Extender / Pause Button */}
+          {!draftEngine.isCompleted && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  draftEngine.extendTimer(30);
+                  audioMgr.playCommsBeep();
+                  setTick(t => t + 1);
+                }}
+                className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/40 px-2 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-black transition flex items-center gap-1 shadow"
+                title="Tambah Waktu Berpikir (+30 Detik)"
+              >
+                <span>⏱️ +30s</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  draftEngine.togglePauseTimer();
+                  audioMgr.playCommsBeep();
+                  setTick(t => t + 1);
+                }}
+                className={`px-2 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-black transition border shadow ${
+                  draftEngine.isTimerPaused
+                    ? 'bg-green-600 text-white border-green-400 animate-pulse'
+                    : 'bg-white/10 text-gray-300 border-white/20 hover:bg-white/20'
+                }`}
+                title={draftEngine.isTimerPaused ? 'Lanjutkan Waktu' : 'Jeda Waktu Draft'}
+              >
+                {draftEngine.isTimerPaused ? '▶️ Lanjut' : '⏸️ Jeda'}
+              </button>
+            </div>
+          )}
+
           <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-xs sm:text-sm font-black font-mono shadow-lg border border-white/20 ${
-            timeLeft <= 5 ? 'bg-red-600 animate-pulse text-white' : 'bg-gray-800 text-white'
+            draftEngine.isTimerPaused
+              ? 'bg-amber-600 text-white'
+              : timeLeft <= 5
+              ? 'bg-red-600 animate-pulse text-white'
+              : 'bg-gray-800 text-white'
           }`}>
             {timeLeft}s
           </div>
@@ -202,6 +240,93 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* COMPACT DUAL SQUAD OVERVIEW BANNER ON MOBILE (All 10 Picks & Bans at a Single Glance - No Tab Switching Needed!) */}
+      <div className="lg:hidden bg-white p-2.5 rounded-2xl border border-gray-200 shadow-md mb-3">
+        <div className="grid grid-cols-2 gap-2">
+          {/* Blue Side Mini Ribbon */}
+          <div className="bg-blue-50/70 p-2 rounded-xl border border-blue-200 flex flex-col justify-between">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] font-black text-blue-700 font-mpl-title">🔵 {draftEngine.blueTeam.shortName}</span>
+              <span className="text-[8px] font-mono text-gray-500">{draftEngine.userSide === 'blue' ? '⭐ Tim Anda' : '🤖 AI Musuh'}</span>
+            </div>
+
+            {/* 5 Picks Mini Slots */}
+            <div className="grid grid-cols-5 gap-1 my-1">
+              {[0, 1, 2, 3, 4].map(idx => {
+                const h = draftEngine.bluePicks[idx];
+                const lane = LANES_ORDER[idx];
+                return (
+                  <div key={idx} className="relative aspect-square rounded-lg bg-gray-900 border border-blue-400/50 overflow-hidden flex items-center justify-center">
+                    {h ? (
+                      <img src={getHeroImageUrl(h.id, h.name)} alt={h.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[7px] text-gray-400 font-mono font-bold">P{idx + 1}</span>
+                    )}
+                    <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[6px] text-blue-300 font-mono text-center leading-none py-0.5">
+                      {lane}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 5 Bans Mini Slots */}
+            <div className="flex items-center gap-1 pt-1 border-t border-blue-200/60">
+              <span className="text-[7px] text-gray-500 font-mono font-bold shrink-0">BAN:</span>
+              {[0, 1, 2, 3, 4].map(idx => {
+                const b = draftEngine.blueBans[idx];
+                return (
+                  <div key={idx} className="w-4 h-4 rounded bg-gray-800 border border-red-500/40 overflow-hidden flex items-center justify-center shrink-0">
+                    {b ? <img src={getHeroImageUrl(b.id, b.name)} alt={b.name} className="w-full h-full object-cover grayscale opacity-70" /> : <span className="text-[6px] text-gray-500">•</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Red Side Mini Ribbon */}
+          <div className="bg-red-50/70 p-2 rounded-xl border border-red-200 flex flex-col justify-between">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] font-black text-red-700 font-mpl-title">🔴 {draftEngine.redTeam.shortName}</span>
+              <span className="text-[8px] font-mono text-gray-500">{draftEngine.userSide === 'red' ? '⭐ Tim Anda' : '🤖 AI Musuh'}</span>
+            </div>
+
+            {/* 5 Picks Mini Slots */}
+            <div className="grid grid-cols-5 gap-1 my-1">
+              {[0, 1, 2, 3, 4].map(idx => {
+                const h = draftEngine.redPicks[idx];
+                const lane = LANES_ORDER[idx];
+                return (
+                  <div key={idx} className="relative aspect-square rounded-lg bg-gray-900 border border-red-400/50 overflow-hidden flex items-center justify-center">
+                    {h ? (
+                      <img src={getHeroImageUrl(h.id, h.name)} alt={h.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[7px] text-gray-400 font-mono font-bold">P{idx + 1}</span>
+                    )}
+                    <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[6px] text-red-300 font-mono text-center leading-none py-0.5">
+                      {lane}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 5 Bans Mini Slots */}
+            <div className="flex items-center gap-1 pt-1 border-t border-red-200/60">
+              <span className="text-[7px] text-gray-500 font-mono font-bold shrink-0">BAN:</span>
+              {[0, 1, 2, 3, 4].map(idx => {
+                const b = draftEngine.redBans[idx];
+                return (
+                  <div key={idx} className="w-4 h-4 rounded bg-gray-800 border border-red-500/40 overflow-hidden flex items-center justify-center shrink-0">
+                    {b ? <img src={getHeroImageUrl(b.id, b.name)} alt={b.name} className="w-full h-full object-cover grayscale opacity-70" /> : <span className="text-[6px] text-gray-500">•</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

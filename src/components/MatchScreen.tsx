@@ -167,10 +167,10 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         baseX: basePos.x,
         baseY: basePos.y,
         laneTarget: targetPos,
-        hp: 1150 + assignment.hero.stats.frontline * 10,
-        maxHp: 1150 + assignment.hero.stats.frontline * 10,
+        hp: 2200 + assignment.hero.stats.frontline * 18,
+        maxHp: 2200 + assignment.hero.stats.frontline * 18,
         shield: 0,
-        atk: 95 + assignment.hero.stats.burst * 1.35,
+        atk: 75 + assignment.hero.stats.burst * 0.9,
         level: 1,
         gold: 300,
         items: [] as MLBBItem[],
@@ -583,7 +583,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
 
           if (h.isDead) {
-            h.respawnTimer -= dt * 3.5;
+            h.respawnTimer -= dt * 1.5;
             if (h.respawnTimer <= 0) {
               h.isDead = false;
               h.hp = h.maxHp;
@@ -594,7 +594,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             return;
           }
 
-          // Recall handling
+          // Recall handling (Teleport to Fountain & Restore 100% HP)
           if (h.isRecalling) {
             h.recallTimer -= dt;
             if (h.recallTimer <= 0) {
@@ -602,8 +602,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               h.x = h.baseX;
               h.y = h.baseY;
               h.hp = h.maxHp;
-              h.shield = 300;
-              damageNumbers.push({ x: h.x, y: h.y - 28, text: '🛡️ RECALL COMPLETE', color: '#00cec9', life: 1.0 });
+              h.shield = 400;
+              damageNumbers.push({ x: h.x, y: h.y - 28, text: '🛡️ RECALL COMPLETE (100% HP)', color: '#00cec9', life: 1.0 });
               logCommentary(`💨 ${h.playerName} (${h.heroName}) selesai RECALL ke Base & siap kembali ke lane!`, 'normal');
               h.targetX = h.laneTarget.x;
               h.targetY = h.laneTarget.y;
@@ -624,9 +624,9 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
 
           // Passive Gold & Level Scaling
-          h.gold += Math.round(dt * 28);
-          state.gold[h.side as 'blue' | 'red'] += Math.round(dt * 28);
-          h.level = Math.min(15, 1 + Math.floor(h.gold / 680));
+          h.gold += Math.round(dt * 24);
+          state.gold[h.side as 'blue' | 'red'] += Math.round(dt * 24);
+          h.level = Math.min(15, 1 + Math.floor(h.gold / 720));
 
           // Real MLBB Item Purchases based on Gold
           const purchasedItems = getHeroPurchasedItems(h.hero.role, h.gold);
@@ -639,15 +639,17 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           // Item stat bonuses
           let itemAtkBonus = 0;
           let itemHpBonus = 0;
+          let itemArmorBonus = 0;
           h.items.forEach((it: MLBBItem) => {
             if (it.stats.atk) itemAtkBonus += it.stats.atk;
-            if (it.stats.magic) itemAtkBonus += it.stats.magic * 0.9;
+            if (it.stats.magic) itemAtkBonus += it.stats.magic * 0.85;
             if (it.stats.hp) itemHpBonus += it.stats.hp;
+            if (it.stats.armor) itemArmorBonus += it.stats.armor;
           });
 
-          const buffBonus = (h.hasRedBuff ? 25 : 0);
-          h.maxHp = 1150 + (h.level * 140) + (h.hero.stats.frontline * 10) + itemHpBonus;
-          h.atk = 95 + (h.level * 12) + (h.hero.stats.burst * 1.4) + itemAtkBonus + buffBonus;
+          const buffBonus = (h.hasRedBuff ? 20 : 0);
+          h.maxHp = 2200 + (h.level * 220) + (h.hero.stats.frontline * 18) + itemHpBonus;
+          h.atk = 75 + (h.level * 12) + (h.hero.stats.burst * 1.1) + itemAtkBonus + buffBonus;
 
           // Bush Camouflage / Stealth
           const nearBush = bushes.some(b => Math.hypot(b.x - h.x, b.y - h.y) < 22);
@@ -666,13 +668,21 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           });
 
-          // Smart Recall on low HP (<28%) if not in direct combat
-          if (h.hp < h.maxHp * 0.28 && !h.isRecalling && (!nearestEnemy || minEnemyDist > 85) && now - h.lastAttackTime > 2500) {
-            h.isRecalling = true;
-            h.recallTimer = 2.5;
-            damageNumbers.push({ x: h.x, y: h.y - 25, text: '🛡️ RECALLING...', color: '#00cec9', life: 0.8 });
-            logCommentary(`💨 ${h.playerName} (${h.heroName}) mundur ke area aman & RECALL ke Base!`, 'normal');
-            return;
+          // 🛡️ SMART RETREAT & RECALL AI: Low HP (<30%) retreats towards friendly turret
+          if (h.hp < h.maxHp * 0.30 && !h.isRecalling) {
+            const friendlyTurrets = turrets.filter(t => t.side === h.side && t.hp > 0);
+            const safeTarget = friendlyTurrets[0] || { x: h.baseX, y: h.baseY };
+            h.targetX = safeTarget.x;
+            h.targetY = safeTarget.y;
+
+            const distToSafe = Math.hypot(safeTarget.x - h.x, safeTarget.y - h.y);
+            if (distToSafe < 50 && (!nearestEnemy || minEnemyDist > 80)) {
+              h.isRecalling = true;
+              h.recallTimer = 3.5;
+              damageNumbers.push({ x: h.x, y: h.y - 25, text: '🛡️ RECALLING...', color: '#00cec9', life: 0.8 });
+              logCommentary(`💨 ${h.playerName} (${h.heroName}) mundur ke turret & RECALL ke Base!`, 'normal');
+              return;
+            }
           }
 
           // Jungler Buff Farming: Prioritize alive jungle camps before ganking
@@ -684,9 +694,9 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               h.targetY = targetBuff.y;
 
               const distToCamp = Math.hypot(targetBuff.x - h.x, targetBuff.y - h.y);
-              if (distToCamp < 45 && now - h.lastAttackTime > 450) {
+              if (distToCamp < 45 && now - h.lastAttackTime > 750) {
                 h.lastAttackTime = now;
-                targetBuff.hp -= (h.atk * 1.6);
+                targetBuff.hp -= (h.atk * 1.5);
                 projectiles.push({
                   x: h.x,
                   y: h.y,
@@ -718,22 +728,24 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           // Laner Minion Wave Farming
           if (h.lane !== 'Jungle') {
             const nearbyEnemyMinions = minions.filter(m => m.side !== h.side && Math.hypot(m.x - h.x, m.y - h.y) < 110);
-            if (nearbyEnemyMinions.length > 0 && (!nearestEnemy || minEnemyDist > 85) && now - h.lastAttackTime > 480) {
-              h.lastAttackTime = now;
-              const tm = nearbyEnemyMinions[0];
-              tm.hp -= (h.atk * 1.1);
-              projectiles.push({
-                x: h.x,
-                y: h.y,
-                targetX: tm.x,
-                targetY: tm.y,
-                color: h.side === 'blue' ? '#3498db' : '#e74c3c',
-                type: h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 'missile' : 'slash',
-                life: 0.2
-              });
-              if (tm.hp <= 0) {
-                h.gold += 85;
-                state.gold[h.side as 'blue' | 'red'] += 85;
+            if (nearbyEnemyMinions.length > 0 && (!nearestEnemy || minEnemyDist > 85)) {
+              const targetMinion = nearbyEnemyMinions[0];
+              if (now - h.lastAttackTime > 800) {
+                h.lastAttackTime = now;
+                targetMinion.hp -= h.atk * 1.1;
+                projectiles.push({
+                  x: h.x,
+                  y: h.y,
+                  targetX: targetMinion.x,
+                  targetY: targetMinion.y,
+                  color: h.side === 'blue' ? '#3498db' : '#e74c3c',
+                  type: 'slash',
+                  life: 0.2
+                });
+                if (targetMinion.hp <= 0) {
+                  h.gold += targetMinion.isSuper ? 130 : 65;
+                  state.gold[h.side as 'blue' | 'red'] += targetMinion.isSuper ? 130 : 65;
+                }
               }
             }
           }
@@ -796,12 +808,32 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           }
 
-          // Dynamic Movement
-          if (nearestEnemy && minEnemyDist < 170) {
+          // Dynamic Movement (Smooth & Tactical with Laning Discipline)
+          const isFleeing = h.hp < h.maxHp * 0.30;
+          if (isFleeing) {
+            const dx = h.targetX - h.x;
+            const dy = h.targetY - h.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 8) {
+              const speedPx = 95 * dt;
+              h.x += (dx / dist) * speedPx;
+              h.y += (dy / dist) * speedPx;
+            }
+          } else if (state.gameTime < 120 && h.lane !== 'Jungle') {
+            // Early Game: Laners hold lane position
+            const dx = h.laneTarget.x - h.x;
+            const dy = h.laneTarget.y - h.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 8) {
+              const speedPx = 75 * dt;
+              h.x += (dx / dist) * speedPx;
+              h.y += (dy / dist) * speedPx;
+            }
+          } else if (nearestEnemy && minEnemyDist < 120) {
             const dx = nearestEnemy.x - h.x;
             const dy = nearestEnemy.y - h.y;
-            const chaseSpeed = 95 * dt;
-            if (minEnemyDist > 45) {
+            const chaseSpeed = 80 * dt;
+            if (minEnemyDist > 55) {
               h.x += (dx / minEnemyDist) * chaseSpeed;
               h.y += (dy / minEnemyDist) * chaseSpeed;
             }
@@ -810,25 +842,25 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             const dy = h.targetY - h.y;
             const dist = Math.hypot(dx, dy);
             if (dist > 8) {
-              const speedPx = 88 * dt;
+              const speedPx = 75 * dt;
               h.x += (dx / dist) * speedPx;
               h.y += (dy / dist) * speedPx;
             }
           }
 
-          // 19. Base Fountain Healing Regeneration (+300 HP/s)
+          // Base Fountain Healing Regeneration (+300 HP/s)
           const distToBase = Math.hypot(h.x - h.baseX, h.y - h.baseY);
-          if (distToBase < 42 && h.hp < h.maxHp) {
-            h.hp = Math.min(h.maxHp, h.hp + 300 * dt);
+          if (distToBase < 45 && h.hp < h.maxHp) {
+            h.hp = Math.min(h.maxHp, h.hp + 350 * dt);
             if (Math.random() < 0.05) {
-              damageNumbers.push({ x: h.x, y: h.y - 20, text: '✨ HEAL +300', color: '#2ecc71', life: 0.4 });
+              damageNumbers.push({ x: h.x, y: h.y - 20, text: '✨ HEAL +350', color: '#2ecc71', life: 0.4 });
             }
           }
 
-          // 1. Lithowanderer River Crab Contest
+          // Lithowanderer River Crab Contest
           if (state.litho.alive) {
             const distToLitho = Math.hypot(h.x - state.litho.x, h.y - state.litho.y);
-            if (distToLitho < 85 && (!nearestEnemy || minEnemyDist > 90) && now - h.lastAttackTime > 450) {
+            if (distToLitho < 85 && (!nearestEnemy || minEnemyDist > 90) && now - h.lastAttackTime > 750) {
               h.lastAttackTime = now;
               state.litho.hp -= (h.atk * 1.3);
               projectiles.push({
@@ -847,7 +879,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 state.litho.respawnTimer = 65;
                 audioMgr.playLithoSlain();
                 h.hasLithoBuff = true;
-                h.hp = Math.min(h.maxHp, h.hp + 380);
+                h.hp = Math.min(h.maxHp, h.hp + 450);
                 h.gold += 120;
                 state.gold[h.side as 'blue' | 'red'] += 120;
                 visualEffects.push({ type: 'shockwave', x: state.litho.x, y: state.litho.y, color: '#2ecc71', radius: 30, life: 0.3 });
@@ -857,33 +889,33 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
           }
 
-          // 9. Marksman Kiting & Orb-Walking
+          // Marksman Kiting & Orb-Walking
           if (h.hero.role === 'Marksman' && nearestEnemy && minEnemyDist < 75) {
             const kdx = nearestEnemy.x - h.x;
             const kdy = nearestEnemy.y - h.y;
-            h.x -= (kdx / minEnemyDist) * 32 * dt * 3.5;
-            h.y -= (kdy / minEnemyDist) * 32 * dt * 3.5;
+            h.x -= (kdx / minEnemyDist) * 28 * dt;
+            h.y -= (kdy / minEnemyDist) * 28 * dt;
           }
 
-          // Combat Attack Execution
-          const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 130 : 60;
+          // Combat Attack Execution with Realistic Cooldowns & Armor Mitigation
+          const attackRange = h.hero.role === 'Marksman' || h.hero.role === 'Mage' ? 125 : 55;
           const isEnemy = h.side !== userSide;
           const combatMult = isEnemy && draftResult.difficultyCondition ? draftResult.difficultyCondition.aiCombatMultiplier : 1.0;
-          const attackIntervalMs = h.hero.role === 'Marksman' ? 400 : h.hero.role === 'Assassin' ? 480 : 620;
+          const attackIntervalMs = h.hero.role === 'Marksman' ? 850 : h.hero.role === 'Assassin' ? 950 : h.hero.role === 'Mage' ? 1100 : 1250;
 
           if (nearestEnemy && minEnemyDist <= attackRange && now - h.lastAttackTime > attackIntervalMs && !nearestEnemy.isFrozenInvulnerable) {
             h.lastAttackTime = now;
 
-            // 16. Skill Miss / Dodging Animation (High Mobility Heroes)
+            // Skill Miss / Dodging Animation (High Mobility Heroes)
             const isMobileHero = ['Assassin', 'Fighter'].includes(nearestEnemy.hero.role);
-            if (isMobileHero && Math.random() < 0.20) {
+            if (isMobileHero && Math.random() < 0.15) {
               audioMgr.playDodge();
               damageNumbers.push({ x: nearestEnemy.x, y: nearestEnemy.y - 20, text: '⚡ DODGE!', color: '#bdc3c7', life: 0.6 });
               visualEffects.push({ type: 'shockwave', x: nearestEnemy.x, y: nearestEnemy.y, color: '#ecf0f1', radius: 25, life: 0.2 });
               return;
             }
 
-            // 15. Passive Item Stacks Counter (War Axe & Brute Force)
+            // Passive Item Stacks Counter (War Axe & Brute Force)
             if (h.items.some((it: MLBBItem) => it.id === 'war_axe')) {
               h.warAxeStacks = Math.min(8, (h.warAxeStacks || 0) + 1);
             }
@@ -891,15 +923,18 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               h.bruteForceStacks = Math.min(5, (h.bruteForceStacks || 0) + 1);
             }
 
-            // 10. Tower Diving Aggression Alert
+            // Tower Diving Aggression Alert
             const inEnemyTurret = turrets.some(t => t.side !== h.side && t.hp > 0 && Math.hypot(t.x - nearestEnemy.x, t.y - nearestEnemy.y) < 75);
             if (inEnemyTurret && nearestEnemy.hp < nearestEnemy.maxHp * 0.22) {
               damageNumbers.push({ x: h.x, y: h.y - 28, text: '🏰 TOWER DIVE!', color: '#e74c3c', life: 0.8 });
             }
 
-            const isCrit = Math.random() < 0.30;
-            const baseDmg = h.atk + Math.random() * 30;
-            let dmg = Math.round((isCrit ? baseDmg * 1.9 : baseDmg) * combatMult);
+            // Realistic Armor Reduction Formula: 100 / (100 + targetArmor)
+            const targetArmor = 25 + nearestEnemy.level * 4;
+            const dmgReduction = 100 / (100 + targetArmor);
+            const isCrit = Math.random() < 0.25;
+            const baseDmg = h.atk + Math.random() * 20;
+            let dmg = Math.round((isCrit ? baseDmg * 1.8 : baseDmg) * dmgReduction * combatMult);
 
             if (nearestEnemy.wonActive && h.hero.damageType === 'Physical') {
               dmg = 0;
@@ -907,7 +942,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
             }
 
             // Ultimate Skill Cast & Trigger CC Stun
-            if (now - h.lastUltTime > 12000) {
+            if (now - h.lastUltTime > 15000) {
               h.lastUltTime = now;
               const ultColor = h.hero.role === 'Mage' ? '#9b59b6' : h.hero.role === 'Assassin' ? '#e74c3c' : h.hero.role === 'Tank' ? '#f39c12' : '#3498db';
               visualEffects.push({
@@ -987,7 +1022,7 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               nearestEnemy.isDead = true;
               nearestEnemy.hp = 0;
               nearestEnemy.kda.d += 1;
-              nearestEnemy.respawnTimer = Math.min(50, 8 + nearestEnemy.level * 2.5);
+              nearestEnemy.respawnTimer = Math.min(55, 12 + nearestEnemy.level * 2.8);
               
               h.kda.k += 1;
               h.streak = (h.streak || 0) + 1;

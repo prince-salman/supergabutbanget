@@ -4,7 +4,7 @@
  * Sanitizes any user input string against XSS, HTML Injection, and Control Characters.
  * Ensures string is clean, bounded in length, and safe to process.
  */
-export function sanitizeInputText(input: unknown, maxLength = 30): string {
+export function sanitizeInputText(input: unknown, maxLength = 30, trimTrailing = true): string {
   if (typeof input !== 'string') return '';
   
   // 1. Remove HTML tags, script vectors, and javascript: protocols
@@ -18,12 +18,17 @@ export function sanitizeInputText(input: unknown, maxLength = 30): string {
     .replace(/onclick/gi, '')
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Strip control chars
 
-  // 2. Normalize whitespace
-  cleaned = cleaned.trim().replace(/\s+/g, ' ');
+  // 2. Normalize whitespace (allow trailing space when user is actively typing)
+  if (trimTrailing) {
+    cleaned = cleaned.trim().replace(/\s+/g, ' ');
+  } else {
+    cleaned = cleaned.replace(/\s{2,}/g, ' ');
+  }
 
   // 3. Clamp length
   if (cleaned.length > maxLength) {
-    cleaned = cleaned.substring(0, maxLength).trim();
+    cleaned = cleaned.substring(0, maxLength);
+    if (trimTrailing) cleaned = cleaned.trim();
   }
 
   return cleaned;

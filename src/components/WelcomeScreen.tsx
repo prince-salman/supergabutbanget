@@ -23,13 +23,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStartCareer }) =
   }, []);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const clean = sanitizeInputText(e.target.value, 24);
+    const clean = sanitizeInputText(e.target.value, 24, false);
     setCoachName(clean);
   };
 
   const handleSelectTeam = (teamId: string) => {
     if (!globalRateLimiter.isAllowed('start_career', 500)) return;
-    const finalCoachName = sanitizeInputText(coachName, 24) || 'Coach Salman';
+    const finalCoachName = sanitizeInputText(coachName, 24, true) || 'Coach Salman';
     audioMgr.playLockPick();
     onStartCareer(teamId, finalCoachName);
   };

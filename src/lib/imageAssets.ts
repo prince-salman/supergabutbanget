@@ -93,16 +93,80 @@ export const ITEM_IMAGE_MAP: Record<string, string> = {
   rapid_boots: "https://wsrv.nl/?url=https://static.wikia.nocookie.net/mobile-legends/images/e/ef/Rapid_Boots.png"
 };
 
+export const ITEM_ICON_SYMBOL_MAP: Record<string, { icon: string; color: string; border: string }> = {
+  // Physical
+  blade_of_despair: { icon: '🗡️', color: '#b71540', border: '#ff7675' },
+  demon_hunter_sword: { icon: '⚔️', color: '#2c3e50', border: '#74b9ff' },
+  malefic_roar: { icon: '🔫', color: '#d35400', border: '#f39c12' },
+  wind_of_nature: { icon: '🍃', color: '#27ae60', border: '#2ecc71' },
+  war_axe: { icon: '🪓', color: '#c0392b', border: '#e74c3c' },
+  endless_battle: { icon: '🔱', color: '#8e44ad', border: '#9b59b6' },
+  berserkers_fury: { icon: '💥', color: '#c0392b', border: '#e67e22' },
+  haass_claws: { icon: '🩸', color: '#962d2d', border: '#e74c3c' },
+  corrosion_scythe: { icon: '🧪', color: '#16a085', border: '#1abc9c' },
+  golden_staff: { icon: '🪄', color: '#f39c12', border: '#f1c40f' },
+  bloodlust_axe: { icon: '🪓', color: '#962d2d', border: '#e74c3c' },
+  great_dragon_spear: { icon: '🏮', color: '#c0392b', border: '#f39c12' },
+  hunter_strike: { icon: '🏹', color: '#2c3e50', border: '#95a5a6' },
+  rose_gold_meteor: { icon: '🛡️', color: '#e84393', border: '#fd79a8' },
+  sea_halberd: { icon: '🔱', color: '#0984e3', border: '#74b9ff' },
+
+  // Magic
+  holy_crystal: { icon: '💎', color: '#6c5ce7', border: '#a29bfe' },
+  lightning_truncheon: { icon: '⚡', color: '#0984e3', border: '#74b9ff' },
+  glowing_wand: { icon: '🔥', color: '#d35400', border: '#e17055' },
+  genius_wand: { icon: '🪄', color: '#2d3436', border: '#a29bfe' },
+  blood_wings: { icon: '🪽', color: '#b71540', border: '#e74c3c' },
+  divine_glaive: { icon: '🗡️', color: '#6c5ce7', border: '#a29bfe' },
+  concentrated_energy: { icon: '🔮', color: '#2d3436', border: '#6c5ce7' },
+  clock_of_destiny: { icon: '⏳', color: '#d35400', border: '#f39c12' },
+  feather_of_heaven: { icon: '🪶', color: '#f39c12', border: '#f1c40f' },
+  enchanted_talisman: { icon: '📖', color: '#16a085', border: '#1abc9c' },
+  starlium_scythe: { icon: '🌙', color: '#6c5ce7', border: '#a29bfe' },
+
+  // Defense
+  immortality: { icon: '🛡️', color: '#b71540', border: '#f1c40f' },
+  winter_crown: { icon: '❄️', color: '#0984e3', border: '#74b9ff' },
+  athenas_shield: { icon: '🛡️', color: '#8e44ad', border: '#a29bfe' },
+  dominance_ice: { icon: '❄️', color: '#0984e3', border: '#00cec9' },
+  antique_cuirass: { icon: '🥋', color: '#2c3e50', border: '#e74c3c' },
+  radiant_armor: { icon: '✨', color: '#d35400', border: '#f1c40f' },
+  brute_force_breastplate: { icon: '🦾', color: '#2d3436', border: '#e67e22' },
+  oracle: { icon: '💚', color: '#27ae60', border: '#2ecc71' },
+  blade_armor: { icon: '🛡️', color: '#2c3e50', border: '#95a5a6' },
+  guardian_helmet: { icon: '🪖', color: '#27ae60', border: '#2ecc71' },
+  twilight_armor: { icon: '🌌', color: '#6c5ce7', border: '#fd79a8' },
+  thunder_belt: { icon: '⚡', color: '#0984e3', border: '#74b9ff' },
+  cursed_helmet: { icon: '🔥', color: '#b71540', border: '#e74c3c' },
+
+  // Movement
+  tough_boots: { icon: '👢', color: '#8e44ad', border: '#a29bfe' },
+  warrior_boots: { icon: '🥾', color: '#c0392b', border: '#e74c3c' },
+  magic_shoes: { icon: '👟', color: '#0984e3', border: '#74b9ff' },
+  swift_boots: { icon: '🥿', color: '#f39c12', border: '#f1c40f' },
+  arcane_boots: { icon: '🥾', color: '#6c5ce7', border: '#a29bfe' },
+  demon_shoes: { icon: '👞', color: '#16a085', border: '#1abc9c' },
+  rapid_boots: { icon: '👟', color: '#d35400', border: '#f39c12' }
+};
+
 /**
- * Returns the Official Real MLBB Item Artwork Icon URL
+ * Returns the Official Real MLBB Item Artwork or Crisp Guaranteed Vector Badge
  */
 export function getItemImageUrl(itemId: string, itemName?: string): string {
   const cleanId = itemId.toLowerCase().replace(/[^a-z0-9_]/g, '');
-  if (ITEM_IMAGE_MAP[cleanId]) {
-    return ITEM_IMAGE_MAP[cleanId];
-  }
-  const cleanName = encodeURIComponent(itemName || itemId);
-  return `https://api.dicebear.com/7.x/shapes/svg?seed=${cleanName}&backgroundColor=111926`;
+  const info = ITEM_ICON_SYMBOL_MAP[cleanId] || { icon: '⚔️', color: '#1e272e', border: '#f1c40f' };
+  
+  const words = (itemName || itemId).replace(/_/g, ' ').split(' ');
+  const abbr = words.map(w => w[0] || '').join('').substring(0, 3).toUpperCase();
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+    <rect width="48" height="48" rx="8" fill="${info.color}" stroke="${info.border}" stroke-width="2"/>
+    <text x="24" y="22" font-size="17" text-anchor="middle" dominant-baseline="central">${info.icon}</text>
+    <rect x="4" y="32" width="40" height="12" rx="3" fill="rgba(0,0,0,0.85)"/>
+    <text x="24" y="39" font-size="8" font-weight="900" font-family="monospace" fill="#ffffff" text-anchor="middle" dominant-baseline="central">${abbr}</text>
+  </svg>`;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 // Official Pro Player & Coach Photo mapping from id-mpl.com
