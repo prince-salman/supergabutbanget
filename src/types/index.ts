@@ -401,3 +401,100 @@ export interface NewsArticle {
   viewsCount: number;
   readTime: string;
 }
+
+// 1. Caster & Analyst Desk Prediction (Feature 53)
+export interface CasterPrediction {
+  casterName: string;
+  role: string;
+  avatar: string;
+  predictedWinnerId: string;
+  predictedScore: string;
+  analysisQuote: string;
+}
+
+export interface MatchDeskAnalysis {
+  matchTitle: string;
+  communityVote: {
+    homePercent: number;
+    awayPercent: number;
+  };
+  casterPredictions: CasterPrediction[];
+}
+
+// 2. Pre-Match Derby & Trash Talk (Feature 52)
+export interface DerbyInfo {
+  isDerby: boolean;
+  derbyName: string;
+  derbyBadge: string;
+  description: string;
+  hypeMultiplier: number;
+}
+
+export interface TrashTalkOption {
+  id: string;
+  tone: 'spicy' | 'humble' | 'tactical';
+  title: string;
+  quote: string;
+  hypeBoost: number;
+  moraleBoost: number;
+}
+
+// 3. Interactive Press Conference (Feature 51)
+export interface PressOption {
+  id: string;
+  text: string;
+  tone: 'confident' | 'humble' | 'spicy' | 'analytical';
+  effectDescription: string;
+  moraleChange: number;
+  hypeChange: number;
+  reputationChange: number;
+}
+
+export interface PressQuestion {
+  id: string;
+  reporterName: string;
+  outletName: string;
+  outletTag: string;
+  outletColor: string;
+  question: string;
+  options: PressOption[];
+  selectedOptionId?: string;
+}
+
+export interface PressConferenceSession {
+  matchTitle: string;
+  questions: PressQuestion[];
+  isCompleted: boolean;
+}
+
+// 4. Draft History Head-to-Head (Feature 38)
+export interface HeadToHeadDraftRecord {
+  matchId: string | number;
+  dateStr: string;
+  stageStr: string;
+  userPicks: string[];
+  enemyPicks: string[];
+  userBans: string[];
+  enemyBans: string[];
+  userWon: boolean;
+  score: string;
+}
+
+// 5. Trending Topics & Netizen Hashtags (Feature 57)
+export interface TrendingTopic {
+  id: string;
+  rank: number;
+  tag: string;
+  category: string;
+  tweetCountStr: string;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  headline: string;
+  topTweet: {
+    user: string;
+    handle: string;
+    avatar: string;
+    text: string;
+    likes: number;
+  };
+}
+

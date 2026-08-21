@@ -5,7 +5,8 @@ import { Team } from '@/types';
 import { TournamentEngine } from '@/lib/tournamentEngine';
 import { globalRateLimiter } from '@/lib/security';
 import { getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
-import { Swords, Users, Trophy, ChevronRight, ChevronLeft, Play, Star, Calendar, Zap, Shield, Sparkles, Newspaper } from 'lucide-react';
+import { trendingEngine } from '@/lib/trendingEngine';
+import { Swords, Users, Trophy, ChevronRight, ChevronLeft, Play, Star, Calendar, Zap, Shield, Sparkles, Newspaper, Flame, MessageSquare, ThumbsUp } from 'lucide-react';
 
 interface DashboardScreenProps {
   userTeam: Team;
@@ -503,6 +504,60 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </div>
           </div>
         </div>
+
+        {/* 5. NETIZEN TRENDING TOPICS & HASHTAGS (Feature 57) */}
+        <section className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm mt-6">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+              <h3 className="text-xs sm:text-sm font-black text-gray-900 uppercase font-mpl-title tracking-wider flex items-center gap-1.5">
+                <Flame className="w-4 h-4 text-red-600" /> TRENDING TOPICS ESPORTS INDONESIA (TWITTER/X & TIKTOK)
+              </h3>
+            </div>
+            {onGoNews && (
+              <button
+                onClick={onGoNews}
+                className="text-[10px] font-mono font-bold text-[#680008] hover:underline flex items-center gap-0.5"
+              >
+                Lihat Semua Berita <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {trendingEngine.generateTrendingTopics(userTeam, coachName, tournament).map(topic => (
+              <div
+                key={topic.id}
+                className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 hover:border-gray-300 transition flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[9px] font-mono text-gray-400 font-bold mb-1">
+                    <span>{topic.category}</span>
+                    <span className="text-gray-600">#{topic.rank} Trending</span>
+                  </div>
+
+                  <h4 className="text-sm font-black text-gray-900 font-mono tracking-tight text-[#680008]">
+                    {topic.tag}
+                  </h4>
+                  <div className="text-[10px] text-gray-500 font-mono mb-2">{topic.tweetCountStr}</div>
+
+                  <p className="text-xs text-gray-700 leading-snug line-clamp-2 mb-3">
+                    {topic.headline}
+                  </p>
+                </div>
+
+                {/* Sample Top Tweet */}
+                <div className="pt-2 border-t border-gray-200/70 text-[11px] text-gray-600 bg-white p-2 rounded-lg border border-gray-100">
+                  <div className="flex items-center justify-between text-[9px] text-gray-400 font-mono mb-0.5">
+                    <span className="font-bold text-gray-800">{topic.topTweet.user}</span>
+                    <span>❤️ {topic.topTweet.likes}</span>
+                  </div>
+                  <div className="italic line-clamp-2">"{topic.topTweet.text}"</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );

@@ -10,7 +10,8 @@ import {
   HeroAssignment, 
   TeamSynergyStats, 
   LaneRole,
-  MatchDifficultyCondition 
+  MatchDifficultyCondition,
+  HeadToHeadDraftRecord
 } from '@/types';
 import { MLBB_HEROES } from '@/lib/data/heroes';
 import { audioMgr } from '@/lib/audioManager';
@@ -41,6 +42,8 @@ export class DraftEngine {
   public currentComms: DraftCommsMessage | null = null;
   public highlightedHeroIds: string[] = [];
   public teamConfidenceBoost: number = 0;
+  public headToHeadHistory: HeadToHeadDraftRecord[] = [];
+  public targetBanAlert: { heroName: string; playerName: string; reason: string } | null = null;
 
   public turnSequence: DraftTurn[] = [
     // Phase 1 Ban: Blue Side bans 3, then Red Side bans 3
@@ -414,6 +417,19 @@ export class DraftEngine {
         this.redBans.push(hero);
       }
       audioMgr.playBanSound();
+
+      // Feature 28: Target Ban Counter-Scouting Alert (when AI bans user player's signature hero)
+      if (current.side !== this.userSide) {
+        const userTeam = this.userSide === 'blue' ? this.blueTeam : this.redTeam;
+        const targetPlayer = userTeam.roster.find(p => p.signature.includes(hero.name));
+        if (targetPlayer) {
+          this.targetBanAlert = {
+            heroName: hero.name,
+            playerName: targetPlayer.name,
+            reason: `AI ${current.side === 'blue' ? this.blueTeam.shortName : this.redTeam.shortName} mem-ban hero comfort signature [${hero.name}] milik ${targetPlayer.name} (${targetPlayer.role})!`
+          };
+        }
+      }
     } else {
       if (current.side === 'blue') {
         this.bluePicks.push(hero);

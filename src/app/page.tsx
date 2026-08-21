@@ -1,12 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Team, DraftResult, PostMatchData, PlayoffMatch } from '@/types';
+import { 
+  Team, 
+  DraftResult, 
+  PostMatchData, 
+  PlayoffMatch, 
+  NewsArticle, 
+  MatchDeskAnalysis, 
+  DerbyInfo, 
+  TrashTalkOption, 
+  HeadToHeadDraftRecord, 
+  PressConferenceSession, 
+  PressOption 
+} from '@/types';
 import { MPL_TEAMS } from '@/lib/data/teams';
 import { TournamentEngine } from '@/lib/tournamentEngine';
 import { DraftEngine } from '@/lib/draftEngine';
 import { safeStorage, sanitizeInputText } from '@/lib/security';
 import { rollRandomMatchDifficulty } from '@/lib/matchDifficulty';
+import { generateMatchDeskAnalysis } from '@/lib/casterDeskEngine';
+import { detectDerby, generateTrashTalkOptions } from '@/lib/derbyEngine';
+import { pressConferenceEngine } from '@/lib/pressConferenceEngine';
+import { newsEngine } from '@/lib/newsEngine';
 
 import { Navbar } from '@/components/Navbar';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
@@ -19,8 +35,8 @@ import { AwardsScreen } from '@/components/AwardsScreen';
 import { StatisticsScreen } from '@/components/StatisticsScreen';
 import { ScheduleScreen } from '@/components/ScheduleScreen';
 import { NewsMediaScreen } from '@/components/NewsMediaScreen';
-import { newsEngine } from '@/lib/newsEngine';
-import { NewsArticle } from '@/types';
+import { PreMatchBriefingModal } from '@/components/PreMatchBriefingModal';
+import { PressConferenceModal } from '@/components/PressConferenceModal';
 
 const STORAGE_KEY = 'mpl_coach_secure_v2';
 
@@ -30,6 +46,24 @@ export default function Home() {
   const [userTeam, setUserTeam] = useState<Team | null>(null);
   const [tournament, setTournament] = useState<TournamentEngine | null>(null);
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
+
+  // Pre-Match Briefing Modal state (Features 52, 53, 38)
+  const [preMatchBriefing, setPreMatchBriefing] = useState<{
+    homeTeam: Team;
+    awayTeam: Team;
+    isUserHome: boolean;
+    matchInfo: any;
+    deskAnalysis: MatchDeskAnalysis;
+    derbyInfo: DerbyInfo;
+    trashTalkOptions: TrashTalkOption[];
+    h2hRecords: HeadToHeadDraftRecord[];
+  } | null>(null);
+
+  // Post-Match Interactive Press Conference state (Feature 51)
+  const [activePressSession, setActivePressSession] = useState<PressConferenceSession | null>(null);
+
+  // Head-to-Head Draft Records map (Feature 38)
+  const [h2hDraftHistory, setH2hDraftHistory] = useState<Record<string, HeadToHeadDraftRecord[]>>({});
 
   // Active match flow state
   const [activeDraftEngine, setActiveDraftEngine] = useState<DraftEngine | null>(null);
@@ -73,6 +107,10 @@ export default function Home() {
     setCoachName(cName);
     setUserTeam(team);
     setTournament(engine);
+
+    if (saved.h2hDraftHistory) {
+      setH2hDraftHistory(saved.h2hDraftHistory);
+    }
 
     if (saved.newsArticles && Array.isArray(saved.newsArticles) && saved.newsArticles.length > 0) {
       newsEngine.articles = saved.newsArticles;
@@ -118,7 +156,8 @@ export default function Home() {
       playoffMatches: tourney.playoffMatches,
       playerStats: tourney.playerStats,
       championTeam: tourney.championTeam,
-      newsArticles: newsEngine.articles
+      newsArticles: newsEngine.articles,
+      h2hDraftHistory
     };
 
     safeStorage.save(STORAGE_KEY, payload);
@@ -233,23 +272,14 @@ export default function Home() {
     reader.readAsText(file);
   };
 
-  const handleEnterDraft = (homeTeam: Team, awayTeam: Team, isUserHome: boolean, matchInfo: any) => {
-    const series = (activeBO3Series && activeBO3Series.matchInfo?.id === matchInfo?.id)
-      ? activeBO3Series
-      : {
-          matchInfo,
-          homeTeam,
-          awayTeam,
-          isUserHome,
-          gameNumber: 1,
-          homeWins: 0,
-          awayWins: 0
-        };
-
-    if (!activeBO3Series || activeBO3Series.matchInfo?.id !== matchInfo?.id) {
-      setActiveBO3Series(series);
-    }
-
+  const startDraftFlow = (
+    homeTeam: Team, 
+    awayTeam: Team, 
+    isUserHome: boolean, 
+    matchInfo: any, 
+    series: any,
+    pastH2H: HeadToHeadDraftRecord[]
+  ) => {
     // Side Alternation in Esports (Game 1 Blue/Red -> Game 2 Red/Blue -> Game 3 Blue/Red):
     const isOddGame = series.gameNumber % 2 === 1;
     const gameBlueTeam = isOddGame ? homeTeam : awayTeam;
@@ -265,15 +295,107 @@ export default function Home() {
       userSide,
       matchInfo?.difficultyCondition
     );
+    engine.headToHeadHistory = pastH2H;
 
     setActiveDraftEngine(engine);
     setCurrentScreen('screen-draft');
+  };
+
+  const handleEnterDraft = (homeTeam: Team, awayTeam: Team, isUserHome: boolean, matchInfo: any) => {
+    const isNewSeries = !activeBO3Series || activeBO3Series.matchInfo?.id !== matchInfo?.id;
+    const series = isNewSeries
+      ? {
+          matchInfo,
+          homeTeam,
+          awayTeam,
+          isUserHome,
+          gameNumber: 1,
+          homeWins: 0,
+          awayWins: 0
+        }
+      : activeBO3Series;
+
+    if (isNewSeries) {
+      setActiveBO3Series(series);
+    }
+
+    const enemyTeam = isUserHome ? awayTeam : homeTeam;
+    const pastH2H = h2hDraftHistory[enemyTeam.id] || [];
+
+    // If it's Game 1 of the series, show the PreMatchBriefingModal!
+    if (series.gameNumber === 1 && tournament) {
+      const deskAnalysis = generateMatchDeskAnalysis(homeTeam, awayTeam, tournament, coachName);
+      const derbyInfo = detectDerby(homeTeam, awayTeam);
+      const trashTalkOptions = generateTrashTalkOptions(userTeam || homeTeam, enemyTeam, coachName, derbyInfo);
+
+      setPreMatchBriefing({
+        homeTeam,
+        awayTeam,
+        isUserHome,
+        matchInfo,
+        deskAnalysis,
+        derbyInfo,
+        trashTalkOptions,
+        h2hRecords: pastH2H
+      });
+    } else {
+      startDraftFlow(homeTeam, awayTeam, isUserHome, matchInfo, series, pastH2H);
+    }
+  };
+
+  const handleProceedFromBriefing = (chosenTrashTalk?: TrashTalkOption) => {
+    if (!preMatchBriefing) return;
+    const { homeTeam, awayTeam, isUserHome, matchInfo, h2hRecords } = preMatchBriefing;
+    setPreMatchBriefing(null);
+
+    const series = activeBO3Series || {
+      matchInfo,
+      homeTeam,
+      awayTeam,
+      isUserHome,
+      gameNumber: 1,
+      homeWins: 0,
+      awayWins: 0
+    };
+
+    startDraftFlow(homeTeam, awayTeam, isUserHome, matchInfo, series, h2hRecords);
   };
 
   const handleDraftComplete = (result: DraftResult) => {
     if (activeMatchInfo?.difficultyCondition) {
       result.difficultyCondition = activeMatchInfo.difficultyCondition;
     }
+
+    // Save into Head-to-Head Draft Records (Feature 38)
+    if (userTeam) {
+      const isUserBlue = activeMatchUserSide === 'blue';
+      const enemy = isUserBlue ? result.redTeam : result.blueTeam;
+      const userPicks = isUserBlue ? result.bluePicks.map(h => h.name) : result.redPicks.map(h => h.name);
+      const enemyPicks = isUserBlue ? result.redPicks.map(h => h.name) : result.bluePicks.map(h => h.name);
+      const userBans = isUserBlue ? result.blueBans.map(h => h.name) : result.redBans.map(h => h.name);
+      const enemyBans = isUserBlue ? result.redBans.map(h => h.name) : result.blueBans.map(h => h.name);
+
+      const rec: HeadToHeadDraftRecord = {
+        matchId: activeMatchInfo?.id || Date.now(),
+        dateStr: `Game ${activeBO3Series?.gameNumber || 1}`,
+        stageStr: tournament?.stage === 'playoffs' ? 'Playoffs' : `Week ${tournament?.currentWeek || 1}`,
+        userPicks,
+        enemyPicks,
+        userBans,
+        enemyBans,
+        userWon: false,
+        score: 'Live'
+      };
+
+      setH2hDraftHistory(prev => {
+        const list = prev[enemy.id] || [];
+        return {
+          ...prev,
+          [enemy.id]: [rec, ...list].slice(0, 5)
+        };
+      });
+    }
+
     setActiveDraftResult(result);
     setCurrentScreen('screen-match');
   };
@@ -349,7 +471,14 @@ export default function Home() {
 
     if (series.homeWins >= requiredWins || series.awayWins >= requiredWins) {
       handleSeriesFinished(series.homeWins, series.awayWins);
-      setCurrentScreen(tournament.stage === 'playoffs' ? 'screen-playoffs' : 'screen-dashboard');
+
+      // Feature 51: Trigger Interactive Post-Match Press Conference Session!
+      if (recapData && userTeam) {
+        const session = pressConferenceEngine.generatePostMatchPressConference(recapData, series, coachName, userTeam);
+        setActivePressSession(session);
+      } else {
+        setCurrentScreen(tournament.stage === 'playoffs' ? 'screen-playoffs' : 'screen-dashboard');
+      }
     } else {
       const nextGameNumber = series.gameNumber + 1;
       const nextSeries = {
@@ -358,25 +487,29 @@ export default function Home() {
       };
       setActiveBO3Series(nextSeries);
 
-      // Side Alternation in Game 2 / Game 3:
-      const isOddGame = nextGameNumber % 2 === 1;
-      const gameBlueTeam = isOddGame ? series.homeTeam : series.awayTeam;
-      const gameRedTeam = isOddGame ? series.awayTeam : series.homeTeam;
-      const userSide: 'blue' | 'red' = (series.isUserHome ? isOddGame : !isOddGame) ? 'blue' : 'red';
-
-      setActiveMatchUserSide(userSide);
-      setActiveMatchInfo(series.matchInfo);
-
-      const engine = new DraftEngine(
-        gameBlueTeam,
-        gameRedTeam,
-        userSide,
-        series.matchInfo?.difficultyCondition
-      );
-
-      setActiveDraftEngine(engine);
-      setCurrentScreen('screen-draft');
+      const enemyTeam = series.isUserHome ? series.awayTeam : series.homeTeam;
+      const pastH2H = h2hDraftHistory[enemyTeam.id] || [];
+      startDraftFlow(series.homeTeam, series.awayTeam, series.isUserHome, series.matchInfo, nextSeries, pastH2H);
     }
+  };
+
+  const handleFinishPressConference = (answers: { questionId: string; selectedOption: PressOption }[]) => {
+    setActivePressSession(null);
+
+    // If user answered questions, append coach quote into the newest news article!
+    if (answers.length > 0 && newsEngine.articles.length > 0) {
+      const firstAnswer = answers[0].selectedOption;
+      if (!newsEngine.articles[0].quotes) newsEngine.articles[0].quotes = [];
+      newsEngine.articles[0].quotes.unshift({
+        speaker: `Coach ${coachName}`,
+        role: `Head Coach ${userTeam?.name || ''}`,
+        quote: firstAnswer.text
+      });
+      setNewsArticles([...newsEngine.articles]);
+      saveCareer();
+    }
+
+    setCurrentScreen(tournament?.stage === 'playoffs' ? 'screen-playoffs' : 'screen-dashboard');
   };
 
   const handleAdvanceWeek = () => {
@@ -513,9 +646,33 @@ export default function Home() {
             onReturnDashboard={() => setCurrentScreen('screen-dashboard')}
           />
         )}
+
+        {/* 3. Pre-Match Briefing Modal (Features 52, 53, 38) */}
+        {preMatchBriefing && (
+          <PreMatchBriefingModal
+            homeTeam={preMatchBriefing.homeTeam}
+            awayTeam={preMatchBriefing.awayTeam}
+            isUserHome={preMatchBriefing.isUserHome}
+            coachName={coachName}
+            deskAnalysis={preMatchBriefing.deskAnalysis}
+            derbyInfo={preMatchBriefing.derbyInfo}
+            trashTalkOptions={preMatchBriefing.trashTalkOptions}
+            h2hRecords={preMatchBriefing.h2hRecords}
+            onProceedToDraft={handleProceedFromBriefing}
+          />
+        )}
+
+        {/* 4. Interactive Post-Match Press Conference Modal (Feature 51) */}
+        {activePressSession && (
+          <PressConferenceModal
+            session={activePressSession}
+            coachName={coachName}
+            onFinishPress={handleFinishPressConference}
+          />
+        )}
       </div>
 
-      {/* 3. Official MPL Footer */}
+      {/* Official MPL Footer */}
       <footer className="bg-white border-t border-gray-200 py-6 px-4 text-center text-xs text-gray-500 font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="flex items-center gap-2">
