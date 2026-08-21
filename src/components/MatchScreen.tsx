@@ -55,8 +55,8 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
 
     // 1. Map Coordinates (Land of Dawn 800x600 layout)
     const bases = {
-      blue: { x: 90, y: 510, hp: 8000, maxHp: 8000 },
-      red: { x: 710, y: 90, hp: 8000, maxHp: 8000 }
+      blue: { x: 90, y: 510, hp: 12000, maxHp: 12000, lastAttack: 0 },
+      red: { x: 710, y: 90, hp: 12000, maxHp: 12000, lastAttack: 0 }
     };
 
     // 3 Lanes (Top/EXP, Mid, Bot/Gold)
@@ -451,33 +451,71 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
           }
         }
 
-        // 4. Marching Lord Movement & Siege
+        // 4. Marching Lord Movement, Defense & Siege
         if (state.marchingLord) {
           const ml = state.marchingLord;
           const targetTurret = turrets.find(t => t.side !== ml.side && t.hp > 0 && t.lane === ml.lane);
           const targetBase = ml.side === 'blue' ? bases.red : bases.blue;
           const target = targetTurret ? { x: targetTurret.x, y: targetTurret.y } : { x: targetBase.x, y: targetBase.y };
 
+          // Defending Heroes target and attack the Marching Lord!
+          const defendingHeroes = heroes.filter(h => h.side !== ml.side && !h.isDead && Math.hypot(h.x - ml.x, h.y - ml.y) < 165);
+          if (defendingHeroes.length > 0) {
+            defendingHeroes.forEach(dh => {
+              const dDmg = (dh.atk * 1.35) * dt;
+              ml.hp -= dDmg;
+              if (Math.random() < 0.08) {
+                projectiles.push({
+                  x: dh.x,
+                  y: dh.y,
+                  targetX: ml.x,
+                  targetY: ml.y,
+                  color: dh.side === 'blue' ? '#3498db' : '#e74c3c',
+                  type: 'slash',
+                  life: 0.2
+                });
+              }
+            });
+          }
+
           const dx = target.x - ml.x;
           const dy = target.y - ml.y;
           const dist = Math.hypot(dx, dy);
 
           if (dist > 35) {
-            ml.x += (dx / dist) * 50 * dt;
-            ml.y += (dy / dist) * 50 * dt;
+            ml.x += (dx / dist) * 45 * dt;
+            ml.y += (dy / dist) * 45 * dt;
           } else {
             if (targetTurret) {
-              targetTurret.hp -= 400 * dt;
+              // Turret attacks Lord
+              ml.hp -= 260 * dt;
+              // Lord attacks Turret
+              targetTurret.hp -= 280 * dt;
               visualEffects.push({ type: 'shockwave', x: targetTurret.x, y: targetTurret.y, color: '#f39c12', radius: 28, life: 0.3 });
               if (targetTurret.hp <= 0) {
                 targetTurret.hp = 0;
                 state.turrets[targetTurret.side as 'blue' | 'red'] -= 1;
-                logCommentary(`💥 Lord menghancurkan Turret ${targetTurret.lane.toUpperCase()} milik ${targetTurret.side.toUpperCase()}!`, 'objective');
+                logCommentary(`💥 Lord merobohkan Turret ${targetTurret.lane.toUpperCase()} milik ${targetTurret.side.toUpperCase()}!`, 'objective');
                 audioMgr.playTurretDestroyed();
               }
             } else {
-              targetBase.hp -= 300 * dt;
+              // Base Crystal Defense Beam attacks Lord
+              ml.hp -= 380 * dt;
+              targetBase.hp -= 220 * dt;
+              visualEffects.push({ type: 'shockwave', x: targetBase.x, y: targetBase.y, color: '#9b59b6', radius: 35, life: 0.3 });
             }
+          }
+
+          // Check if Defending Team Slays the Marching Lord!
+          if (ml.hp <= 0) {
+            const defSideName = ml.side === 'blue' ? draftResult.redTeam.shortName : draftResult.blueTeam.shortName;
+            logCommentary(`🛡️ DEFENSE BERHASIL! Skuad ${defSideName} sukses menumbangkan Lord & menyelamatkan High Ground!`, 'highlight');
+            visualEffects.push({ type: 'shockwave', x: ml.x, y: ml.y, color: '#2ecc71', radius: 50, life: 0.6 });
+            damageNumbers.push({ x: ml.x, y: ml.y - 25, text: '🛡️ LORD DEFEATED (DEFENSE SUKSES)!', color: '#2ecc71', life: 1.3 });
+            state.marchingLord = null;
+            // Cooldown before next Lord spawns (100 seconds)
+            state.objective.status = 'spawning';
+            state.objective.timer = 100;
           }
         }
 
@@ -1141,13 +1179,17 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               if (isLord) {
                 logCommentary(`👑 RETRIBUTION SENSASIONAL! ${jungler.playerName} (${jungler.heroName}) mengamankan Lord! Lord berbaris menuju base lawan!`, 'objective');
                 audioMgr.playLordSlain();
+                const isEnhanced = state.gameTime >= 720;
+                const isAncient = state.gameTime >= 1080;
+                const lordHp = isAncient ? 15000 : isEnhanced ? 10500 : 6800;
+
                 state.marchingLord = {
                   side: jungler.side,
                   lane: 'mid',
                   x: state.objective.x,
                   y: state.objective.y,
-                  hp: 9500,
-                  maxHp: 9500
+                  hp: lordHp,
+                  maxHp: lordHp
                 };
               } else {
                 const turtleNum = state.objective.killCount;
@@ -1372,12 +1414,19 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
       }
 
       // Marching Lord
+      // Marching Lord with Live HP Bar & Defense Indicators
       if (state.marchingLord) {
         const ml = state.marchingLord;
         ctx.fillStyle = '#8e44ad';
-        ctx.beginPath(); ctx.arc(ml.x, ml.y, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ml.x, ml.y, 21, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = ml.side === 'blue' ? '#3498db' : '#e74c3c'; ctx.lineWidth = 3; ctx.stroke();
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('👑 LORD', ml.x, ml.y + 4);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('👑 LORD', ml.x, ml.y + 4);
+
+        // Marching Lord HP Bar
+        ctx.fillStyle = '#222';
+        ctx.fillRect(ml.x - 22, ml.y - 28, 44, 5);
+        ctx.fillStyle = '#9b59b6';
+        ctx.fillRect(ml.x - 22, ml.y - 28, Math.max(0, (ml.hp / ml.maxHp) * 44), 5);
       }
 
       // Projectiles
