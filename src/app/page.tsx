@@ -215,25 +215,34 @@ export default function Home() {
   };
 
   const handleEnterDraft = (homeTeam: Team, awayTeam: Team, isUserHome: boolean, matchInfo: any) => {
+    const series = (activeBO3Series && activeBO3Series.matchInfo?.id === matchInfo?.id)
+      ? activeBO3Series
+      : {
+          matchInfo,
+          homeTeam,
+          awayTeam,
+          isUserHome,
+          gameNumber: 1,
+          homeWins: 0,
+          awayWins: 0
+        };
+
     if (!activeBO3Series || activeBO3Series.matchInfo?.id !== matchInfo?.id) {
-      setActiveBO3Series({
-        matchInfo,
-        homeTeam,
-        awayTeam,
-        isUserHome,
-        gameNumber: 1,
-        homeWins: 0,
-        awayWins: 0
-      });
+      setActiveBO3Series(series);
     }
 
-    const userSide = isUserHome ? 'blue' : 'red';
+    // Side Alternation in Esports (Game 1 Blue/Red -> Game 2 Red/Blue -> Game 3 Blue/Red):
+    const isOddGame = series.gameNumber % 2 === 1;
+    const gameBlueTeam = isOddGame ? homeTeam : awayTeam;
+    const gameRedTeam = isOddGame ? awayTeam : homeTeam;
+    const userSide: 'blue' | 'red' = (isUserHome ? isOddGame : !isOddGame) ? 'blue' : 'red';
+
     setActiveMatchUserSide(userSide);
     setActiveMatchInfo(matchInfo);
 
     const engine = new DraftEngine(
-      homeTeam,
-      awayTeam,
+      gameBlueTeam,
+      gameRedTeam,
       userSide,
       matchInfo?.difficultyCondition
     );
@@ -251,13 +260,34 @@ export default function Home() {
   };
 
   const handleMatchFinish = (data: PostMatchData) => {
+    // 1. Record real game stats into tournament engine
+    if (tournament) {
+      tournament.recordGameStats(data);
+      saveCareer();
+    }
+
+    // 2. Track BO3 series score & determine if series is over
     if (activeBO3Series) {
+      const isHomeWinner = data.winnerTeam.id === activeBO3Series.homeTeam.id;
+      const updatedHomeWins = activeBO3Series.homeWins + (isHomeWinner ? 1 : 0);
+      const updatedAwayWins = activeBO3Series.awayWins + (!isHomeWinner ? 1 : 0);
+
+      const requiredWins = (tournament?.stage === 'playoffs' && activeBO3Series.matchInfo?.round === 'grand_final') ? 4 : 2;
+      const isOver = updatedHomeWins >= requiredWins || updatedAwayWins >= requiredWins;
+
+      const updatedSeries = {
+        ...activeBO3Series,
+        homeWins: updatedHomeWins,
+        awayWins: updatedAwayWins
+      };
+      setActiveBO3Series(updatedSeries);
+
       data.seriesInfo = {
         matchId: activeBO3Series.matchInfo?.id || 'm_active',
-        isSeriesOver: false,
+        isSeriesOver: isOver,
         gameNumber: activeBO3Series.gameNumber,
-        homeWins: activeBO3Series.homeWins + (data.winnerSide === 'blue' ? 1 : 0),
-        awayWins: activeBO3Series.awayWins + (data.winnerSide === 'red' ? 1 : 0),
+        homeWins: updatedHomeWins,
+        awayWins: updatedAwayWins,
         homeTeam: activeBO3Series.homeTeam,
         awayTeam: activeBO3Series.awayTeam
       };
@@ -290,29 +320,37 @@ export default function Home() {
     }
 
     const series = activeBO3Series;
-    let homeWins = series.homeWins;
-    let awayWins = series.awayWins;
-
-    if (recapData) {
-      if (recapData.winnerSide === 'blue') homeWins++;
-      else awayWins++;
-    }
-
-    // Win condition check for BO3 / BO5 / BO7
     const requiredWins = (tournament.stage === 'playoffs' && series.matchInfo.round === 'grand_final') ? 4 : 2;
 
-    if (homeWins === requiredWins || awayWins === requiredWins) {
-      handleSeriesFinished(homeWins, awayWins);
+    if (series.homeWins >= requiredWins || series.awayWins >= requiredWins) {
+      handleSeriesFinished(series.homeWins, series.awayWins);
       setCurrentScreen(tournament.stage === 'playoffs' ? 'screen-playoffs' : 'screen-dashboard');
     } else {
-      setActiveBO3Series({
+      const nextGameNumber = series.gameNumber + 1;
+      const nextSeries = {
         ...series,
-        gameNumber: series.gameNumber + 1,
-        homeWins,
-        awayWins
-      });
+        gameNumber: nextGameNumber
+      };
+      setActiveBO3Series(nextSeries);
 
-      handleEnterDraft(series.homeTeam, series.awayTeam, series.isUserHome, series.matchInfo);
+      // Side Alternation in Game 2 / Game 3:
+      const isOddGame = nextGameNumber % 2 === 1;
+      const gameBlueTeam = isOddGame ? series.homeTeam : series.awayTeam;
+      const gameRedTeam = isOddGame ? series.awayTeam : series.homeTeam;
+      const userSide: 'blue' | 'red' = (series.isUserHome ? isOddGame : !isOddGame) ? 'blue' : 'red';
+
+      setActiveMatchUserSide(userSide);
+      setActiveMatchInfo(series.matchInfo);
+
+      const engine = new DraftEngine(
+        gameBlueTeam,
+        gameRedTeam,
+        userSide,
+        series.matchInfo?.difficultyCondition
+      );
+
+      setActiveDraftEngine(engine);
+      setCurrentScreen('screen-draft');
     }
   };
 

@@ -61,11 +61,15 @@ export const RecapScreen: React.FC<RecapScreenProps> = ({
           </div>
         </div>
 
-        {!isSeriesOver && (
+        {isSeriesOver ? (
+          <div className="mt-3 text-xs text-green-800 bg-green-50 border border-green-200 py-1.5 px-3 rounded-lg font-bold">
+            🎉 SERI SELESAI! {homeWins > awayWins ? homeTeam.name : awayTeam.name} memenangkan pertandingan dengan skor {Math.max(homeWins, awayWins)} - {Math.min(homeWins, awayWins)}!
+          </div>
+        ) : (
           <div className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 py-1.5 px-3 rounded-lg font-bold">
-            {gameNumber === 1
-              ? `Seri BO3 berlanjut ke Game 2! Skor saat ini: ${homeWins} - ${awayWins}`
-              : `Skor Seri imbang 1 - 1! Bersiap untuk Game 3 Penentuan (Decider Game)!`}
+            {homeWins === 1 && awayWins === 1
+              ? `Skor Seri imbang 1 - 1! Bersiap untuk Game 3 Penentuan (Decider Game - Side Tim Bertukar)!`
+              : `Seri BO3 berlanjut ke Game ${gameNumber + 1}! Skor saat ini: ${homeWins} - ${awayWins} (Side Tim Bertukar)`}
           </div>
         )}
       </div>

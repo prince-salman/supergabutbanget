@@ -170,16 +170,25 @@ export class DraftEngine {
     let suggestedHeroIds: string[] = [];
     let coachReplyOptions: CoachReplyOption[] = [];
 
-    // 1. Assistant Coach Meta & Strategy Analysis (1 Clean Message)
+    // 1. Assistant Coach Meta & Strategy Analysis (Varied & Clean Message)
     if (current.phase === 'ban') {
-      const topBans = available.filter(h => h.tier === 'S+' || h.tier === 'S').slice(0, 2);
+      const topBans = available.filter(h => h.tier === 'S+' || h.tier === 'S').slice(0, 3);
       suggestedHeroIds = topBans.map(h => h.id);
+      
+      const banPhrases = [
+        `Coach, scouting data menunjukkan musuh berbahaya kalau pegang ${topBans.map(h => h.name).join(' / ')}. Kita tutup opsi mereka!`,
+        `Analisis draft: ban ${topBans[0]?.name} atau ${topBans[1]?.name} biar strategi early-game musuh langsung pincang, Coach!`,
+        `Fase Ban krusial! Hero tier S+ prioritas tinggi saat ini adalah ${topBans.map(h => h.name).join(' & ')}, amankan ban kita!`,
+        `Coach, musuh suka banget kompo ${topBans[0]?.name}. Jangan kasih celah sedikitpun, kita ban sekarang!`
+      ];
+      const selectedBanMsg = banPhrases[Math.floor(Math.random() * banPhrases.length)];
+
       squadDiscussion.push({
         id: `asst_${Date.now()}`,
         speakerName: asstCoach.name,
         speakerRole: 'Tactical Analyst',
         avatarIcon: '📋',
-        message: `Coach, untuk fase Ban ini, musuh sering mengandalkan ${topBans.map(h => h.name).join(' & ')}. Sebaiknya kita tutup opsi mereka!`,
+        message: selectedBanMsg,
         suggestedHeroName: topBans[0]?.name,
         suggestedHeroId: topBans[0]?.id
       });
@@ -205,7 +214,7 @@ export class DraftEngine {
         }
       }
 
-      const bestPicks = available.filter(h => (h.lane === nextRole || h.secondaryLane === nextRole) && (h.tier === 'S+' || h.tier === 'S')).slice(0, 2);
+      const bestPicks = available.filter(h => (h.lane === nextRole || h.secondaryLane === nextRole) && (h.tier === 'S+' || h.tier === 'S')).slice(0, 3);
       if (counterRecommendation && !suggestedHeroIds.includes(counterRecommendation.id)) {
         suggestedHeroIds.push(counterRecommendation.id);
       }
@@ -213,9 +222,21 @@ export class DraftEngine {
         if (!suggestedHeroIds.includes(h.id)) suggestedHeroIds.push(h.id);
       });
 
-      let analystMsg = `Coach, giliran kita isi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`;
+      const pickPhrases = [
+        `Coach, giliran kita isi ${nextRole} Lane. Rekomendasi data statistik: ${bestPicks.map(h => h.name).join(' atau ')}!`,
+        `Saatnya amankan ${nextRole}! Komposisi kita bakal kuat banget kalau ambil [${bestPicks[0]?.name || 'hero power'}]!`,
+        `Tempo permainan butuh pilar ${nextRole} yang solid, Coach. Opsi teratas: ${bestPicks.map(h => h.name).join(' / ')}!`,
+        `Kunci posisi ${nextRole} Lane sekarang untuk kuasai setup objektif, Coach!`
+      ];
+      let analystMsg = pickPhrases[Math.floor(Math.random() * pickPhrases.length)];
+
       if (counterRecommendation) {
-        analystMsg = `💡 COUNTER-PICK! Musuh sudah pick ${counterTargetName}. Rekomendasi terbaik: kunci [${counterRecommendation.name}]!`;
+        const counterPhrases = [
+          `💡 COUNTER-PICK! Musuh sudah pick ${counterTargetName}. Rekomendasi tajam: kunci [${counterRecommendation.name}]!`,
+          `🎯 OPSI EMAS! Ambil [${counterRecommendation.name}] untuk shut down pergerakan & damage ${counterTargetName} lawan!`,
+          `⚡ DETEKSI COUNTER! Komposisi musuh rentan terhadap [${counterRecommendation.name}]. Saatnya manfaatkan celah mereka!`
+        ];
+        analystMsg = counterPhrases[Math.floor(Math.random() * counterPhrases.length)];
       }
 
       squadDiscussion.push({
@@ -228,7 +249,7 @@ export class DraftEngine {
         suggestedHeroId: counterRecommendation?.id || bestPicks[0]?.id
       });
 
-      // 2. Only the ONE relevant player for this role speaks (No spamming!)
+      // 2. Only the ONE relevant player for this role speaks (Dynamic & Varied Dialogue)
       const activePlayer = starters.find(p => p.role === nextRole) || starters.find(p => !myPicks.some((_, i) => (this.userSide === 'blue' ? this.blueAssignments : this.redAssignments)[i]?.player?.id === p.id)) || starters[0];
 
       if (activePlayer) {
@@ -241,26 +262,48 @@ export class DraftEngine {
         }
 
         let msg = "";
+        const sigName = chosenHero?.name || 'hero andalan';
+
         if (activePlayer.role === 'EXP') {
-          msg = playerSignature
-            ? `Coach, lepas ${playerSignature.name} ke saya! Saya siap freeze lane dan flank backline musuh!`
-            : `Coach, untuk EXP Lane saya siap tahan frontline tim!`;
+          const expMsgs = [
+            `Coach, lepas ${sigName} ke saya! Saya siap freeze lane dan flank backline musuh!`,
+            `Kasih saya ${sigName} Coach! EXP lane saya jamin menang trade hit dan zoning area Turtle!`,
+            `Coach, saya pede banget pake ${sigName}! Siap rusuh formasi musuh pas war Lord!`,
+            `Untuk EXP Lane saya siap tahan benteng frontline tim, Coach!`
+          ];
+          msg = expMsgs[Math.floor(Math.random() * expMsgs.length)];
         } else if (activePlayer.role === 'Jungle') {
-          msg = playerSignature
-            ? `Coach, saya pede pake ${playerSignature.name}! Siap amankan Turtle & Lord!`
-            : `Coach, amankan Assassin/Fighter Jungle untuk saya, siap invasi buff!`;
+          const jgMsgs = [
+            `Coach, pick-in ${sigName}! Jari saya lagi on-fire, Retribution pasti dapet di semua objektif!`,
+            `Lepas ${sigName} ke saya Coach! Siap invasi buff ungu musuh dari menit awal!`,
+            `Saya siap gendong pake ${sigName}! Rotasi ganking ke Gold Lane bakal super cepat!`,
+            `Amankan Assassin/Fighter Jungle untuk saya Coach, siap eksekusi strategi!`
+          ];
+          msg = jgMsgs[Math.floor(Math.random() * jgMsgs.length)];
         } else if (activePlayer.role === 'Mid') {
-          msg = playerSignature
-            ? `Coach, pick-in ${playerSignature.name}! Saya siap kasih damage poke & zoning!`
-            : `Coach, saya siap pick Mage buat backup teamfight!`;
+          const midMsgs = [
+            `Coach, amankan ${sigName}! Saya bakal sediakan burst damage AoE dan high ground defense rapat!`,
+            `Lepas ${sigName} dong Coach! CC saya siap backup rotasi Jungler & Roamer di River!`,
+            `Pede banget pake ${sigName}! Skill poke saya bakal bikin carry musuh gak bisa farming!`,
+            `Mid Lane siap pick Mage control buat kuasai teamfight, Coach!`
+          ];
+          msg = midMsgs[Math.floor(Math.random() * midMsgs.length)];
         } else if (activePlayer.role === 'Gold') {
-          msg = playerSignature
-            ? `Coach, kasih ${playerSignature.name}! Saya siap farming dan gendong late game!`
-            : `Coach, amankan Marksman andalan, saya butuh Roamer cover pas laning!`;
+          const goldMsgs = [
+            `Coach, kasih ${sigName}! Saya siap laning disiplin, power spike mid-game, dan sapu bersih war!`,
+            `Lepas ${sigName} ke saya! Roamer tinggal cover tipis-tipis, late game serahkan ke saya!`,
+            `Coach, ${sigName} lagi nyaman banget di tangan saya. Siap jadi mesin damage tim!`,
+            `Amankan Marksman andalan Coach, saya butuh Roamer cover pas laning!`
+          ];
+          msg = goldMsgs[Math.floor(Math.random() * goldMsgs.length)];
         } else { // Roam
-          msg = playerSignature
-            ? `Coach, saya pick ${playerSignature.name}! Siap open map di bush dan inisiasi war!`
-            : `Coach, Roamer siap ambil hero CC/Heal buat lindungi carry!`;
+          const roamMsgs = [
+            `Coach, saya siap inisiasi pake ${sigName}! Buka vision bush, lock carry musuh, dan protect teman!`,
+            `Pick ${sigName} Coach! Sinergi teamfight kita bakal pecah kalau saya buka war!`,
+            `Kasih saya ${sigName}, siap roaming rotasi 3 lane buat bantu laning kawan!`,
+            `Roamer siap ambil hero CC/Heal buat amankan keselamatan carry kita, Coach!`
+          ];
+          msg = roamMsgs[Math.floor(Math.random() * roamMsgs.length)];
         }
 
         squadDiscussion.push({
@@ -410,11 +453,13 @@ export class DraftEngine {
           enemyTeam.roster.some(p => p.signature.includes(h.name))
         );
         if (enemySignatures.length > 0) {
-          return enemySignatures[Math.floor(Math.random() * enemySignatures.length)];
+          const topSig = enemySignatures.slice(0, 3);
+          return topSig[Math.floor(Math.random() * topSig.length)];
         }
         const sPlus = availableHeroes.filter(h => h.tier === 'S+');
         if (sPlus.length > 0) {
-          return sPlus[Math.floor(Math.random() * sPlus.length)];
+          const topSPlus = sPlus.slice(0, 4);
+          return topSPlus[Math.floor(Math.random() * topSPlus.length)];
         }
       } else {
         // Phase 2 Ban: Target Ban Opponent's missing roles & signatures!
@@ -425,15 +470,17 @@ export class DraftEngine {
           enemyTeam.roster.some(p => p.role === h.lane && p.signature.includes(h.name))
         );
         if (targetedMissingBans.length > 0) {
-          return targetedMissingBans[0];
+          const topTarget = targetedMissingBans.slice(0, 3);
+          return topTarget[Math.floor(Math.random() * topTarget.length)];
         }
         const generalMissingBans = availableHeroes.filter(h => enemyNeededRoles.includes(h.lane) && (h.tier === 'S+' || h.tier === 'S'));
         if (generalMissingBans.length > 0) {
-          return generalMissingBans[Math.floor(Math.random() * generalMissingBans.length)];
+          const topGen = generalMissingBans.slice(0, 3);
+          return topGen[Math.floor(Math.random() * topGen.length)];
         }
       }
       const tierS = availableHeroes.filter(h => h.tier === 'S+' || h.tier === 'S');
-      return tierS.length > 0 ? tierS[Math.floor(Math.random() * tierS.length)] : availableHeroes[0];
+      return tierS.length > 0 ? tierS[Math.floor(Math.random() * Math.min(4, tierS.length))] : availableHeroes[0];
     }
 
     // Phase Pick: Smart Counter-Pick & Synergy Optimizer
@@ -568,12 +615,29 @@ export class DraftEngine {
         if (!hasMagic && hero.damageType === 'Magic') score += 22;
       }
 
+      // 7. Dynamic personality jitter for non-repetitive gameplay
+      score += (Math.random() * 10 - 5);
+
       return { hero, score };
     });
 
     scored.sort((a, b) => b.score - a.score);
-    const topChoices = scored.slice(0, Math.min(2, scored.length));
-    return topChoices[0]?.hero || availableHeroes[0];
+    const topScore = scored[0]?.score || 0;
+    // Candidates within 14 points of best score
+    const viable = scored.filter(s => s.score >= topScore - 14).slice(0, 4);
+
+    if (viable.length === 1) return viable[0].hero;
+    if (viable.length === 2) {
+      return Math.random() < 0.65 ? viable[0].hero : viable[1].hero;
+    }
+    if (viable.length >= 3) {
+      const roll = Math.random();
+      if (roll < 0.55) return viable[0].hero;
+      if (roll < 0.85) return viable[1].hero;
+      return viable[2].hero;
+    }
+
+    return scored[0]?.hero || availableHeroes[0];
   }
 
   getNeededLanes(currentPicks: Hero[]): LaneRole[] {

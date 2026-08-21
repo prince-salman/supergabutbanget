@@ -628,50 +628,62 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ tournament, 
             </p>
           </div>
 
-          {/* Official MVP Race Cards Grid (Matching Screenshots 4 & 5) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
-            {mvpCards.map(({ rank, player, pts }) => (
-              <div
-                key={player.id}
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col justify-between relative group hover:shadow-md transition"
-              >
-                {/* Upper Area with Giant Watermark Rank & Team Logo */}
-                <div className="relative h-48 bg-gradient-to-b from-gray-50 to-gray-200 flex items-end justify-center p-3 overflow-hidden">
-                  {/* Giant #1, #2, #3 Watermark on Top Left */}
-                  <span className="absolute top-1 left-3 text-5xl md:text-6xl font-mpl-title font-black text-gray-400/40 select-none">
-                    #{rank}
-                  </span>
+          {mvpCards.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-sm max-w-2xl mx-auto">
+              <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+              <h3 className="text-xl font-mpl-title font-black uppercase text-gray-800">
+                MVP STANDINGS BELUM DIMULAI
+              </h3>
+              <p className="text-sm text-gray-500 mt-2 font-medium">
+                Poin perlombaan MVP Regular Season MPL ID 2026 akan terakumulasi secara otomatis setelah pertandingan pertama selesai dimainkan!
+              </p>
+            </div>
+          ) : (
+            /* Official MVP Race Cards Grid (Matching Screenshots 4 & 5) */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+              {mvpCards.map(({ rank, player, pts }) => (
+                <div
+                  key={player.id}
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col justify-between relative group hover:shadow-md transition"
+                >
+                  {/* Upper Area with Giant Watermark Rank & Team Logo */}
+                  <div className="relative h-48 bg-gradient-to-b from-gray-50 to-gray-200 flex items-end justify-center p-3 overflow-hidden">
+                    {/* Giant #1, #2, #3 Watermark on Top Left */}
+                    <span className="absolute top-1 left-3 text-5xl md:text-6xl font-mpl-title font-black text-gray-400/40 select-none">
+                      #{rank}
+                    </span>
 
-                  {/* Team Logo Background Watermark */}
-                  <img
-                    src={getTeamLogoUrl(player.teamTag, player.teamColor)}
-                    alt={player.teamTag}
-                    className="absolute top-2 right-2 w-20 h-20 object-contain opacity-15 pointer-events-none"
-                  />
+                    {/* Team Logo Background Watermark */}
+                    <img
+                      src={getTeamLogoUrl(player.teamTag, player.teamColor)}
+                      alt={player.teamTag}
+                      className="absolute top-2 right-2 w-20 h-20 object-contain opacity-15 pointer-events-none"
+                    />
 
-                  {/* Red PTS Badge */}
-                  <div className="absolute bottom-3 left-3 bg-[#d32f2f] text-white text-xs md:text-sm font-black px-2.5 py-1 rounded shadow-md font-mono z-20">
-                    {pts} PTS
+                    {/* Red PTS Badge */}
+                    <div className="absolute bottom-3 left-3 bg-[#d32f2f] text-white text-xs md:text-sm font-black px-2.5 py-1 rounded shadow-md font-mono z-20">
+                      {pts} PTS
+                    </div>
+
+                    {/* Pro Player Avatar in Jersey */}
+                    <img
+                      src={getPlayerAvatarUrl(player.name, player.teamColor)}
+                      alt={player.name}
+                      className="h-36 w-auto object-contain z-10 drop-shadow-lg"
+                    />
                   </div>
 
-                  {/* Pro Player Avatar in Jersey */}
-                  <img
-                    src={getPlayerAvatarUrl(player.name, player.teamColor)}
-                    alt={player.name}
-                    className="h-36 w-auto object-contain z-10 drop-shadow-lg"
-                  />
+                  {/* Bottom Slanted Black Bar with Team Tag & Player Name */}
+                  <div className="bg-black text-white px-4 py-2.5 flex items-center justify-between shadow-inner">
+                    <span className="text-xs md:text-sm font-black uppercase tracking-wider font-mono truncate">
+                      {player.teamTag} {player.name}
+                    </span>
+                    <Flame className="w-3.5 h-3.5 text-amber-500 fill-current shrink-0" />
+                  </div>
                 </div>
-
-                {/* Bottom Slanted Black Bar with Team Tag & Player Name */}
-                <div className="bg-black text-white px-4 py-2.5 flex items-center justify-between shadow-inner">
-                  <span className="text-xs md:text-sm font-black uppercase tracking-wider font-mono truncate">
-                    {player.teamTag} {player.name}
-                  </span>
-                  <Flame className="w-3.5 h-3.5 text-amber-500 fill-current shrink-0" />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </main>

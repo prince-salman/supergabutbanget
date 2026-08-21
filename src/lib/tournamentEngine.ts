@@ -8,7 +8,8 @@ import {
   HeroSeasonStats,
   AwardsData, 
   AllStarTeam, 
-  LaneRole 
+  LaneRole,
+  PostMatchData
 } from '@/types';
 import { MLBB_HEROES } from '@/lib/data/heroes';
 
@@ -264,27 +265,101 @@ export class TournamentEngine {
     }
   }
 
+  recordGameStats(data: PostMatchData) {
+    if (!data || !data.heroes) return;
+
+    const winnerSide = data.winnerSide;
+
+    // 1. Update Individual Player Stats & Hero Pool
+    data.heroes.forEach((h: any) => {
+      const playerId = h.player?.id || h.id;
+      const pStat = this.playerStats[playerId];
+      if (pStat) {
+        pStat.gamesPlayed += 1;
+        pStat.kills += (h.kda?.k || 0);
+        pStat.deaths += (h.kda?.d || 0);
+        pStat.assists += (h.kda?.a || 0);
+        pStat.totalDamage += (h.damageDealt || 0);
+        
+        const isWin = h.side === winnerSide;
+        if (isWin) pStat.wins += 1;
+
+        if (!pStat.heroPool) pStat.heroPool = [];
+        const heroId = h.hero?.id || h.heroId;
+        const heroName = h.hero?.name || h.heroName;
+        const existingHero = pStat.heroPool.find((hp: any) => hp.heroId === heroId);
+        if (existingHero) {
+          existingHero.picks += 1;
+          const currentWins = (existingHero.wins || 0) + (isWin ? 1 : 0);
+          existingHero.wins = currentWins;
+          existingHero.winRate = Math.round((currentWins / existingHero.picks) * 100);
+        } else if (heroId) {
+          pStat.heroPool.push({
+            heroId,
+            heroName: heroName || 'Hero',
+            picks: 1,
+            wins: isWin ? 1 : 0,
+            winRate: isWin ? 100 : 0
+          });
+        }
+      }
+
+      // 2. Update Global Hero Stats
+      const heroId = h.hero?.id || h.heroId;
+      if (heroId && this.heroStats[heroId]) {
+        const hStat = this.heroStats[heroId];
+        hStat.picks += 1;
+        if (h.side === winnerSide) {
+          hStat.wins += 1;
+        } else {
+          hStat.losses += 1;
+        }
+        hStat.winRate = Math.round((hStat.wins / Math.max(1, hStat.picks)) * 100);
+      }
+    });
+
+    // 3. Update MVP Points (+10 per Game MVP)
+    if (data.mvp) {
+      const mvpPlayerId = data.mvp.player?.id || data.mvp.id;
+      const mvpPStat = this.playerStats[mvpPlayerId];
+      if (mvpPStat) {
+        mvpPStat.mvpCount += 1;
+        mvpPStat.mvpPoints = (mvpPStat.mvpPoints || 0) + 10;
+      }
+    }
+
+    // 4. Update Team Stats
+    const blueTeamId = data.winnerSide === 'blue' ? data.winnerTeam?.id : data.loserTeam?.id;
+    const redTeamId = data.winnerSide === 'red' ? data.winnerTeam?.id : data.loserTeam?.id;
+    if (blueTeamId && this.teamStats[blueTeamId]) {
+      const bTStat = this.teamStats[blueTeamId];
+      bTStat.kills += (data.score?.blue || 0);
+      bTStat.deaths += (data.score?.red || 0);
+      bTStat.assists += Math.floor((data.score?.blue || 0) * 1.8);
+      bTStat.gold += (data.gold?.blue || 55000);
+      bTStat.damage += 220000;
+      bTStat.lord += (data.lords?.blue || 0);
+      bTStat.tortoise += (data.turtles?.blue || 0);
+      bTStat.tower += (data.turrets?.blue || 0);
+    }
+    if (redTeamId && this.teamStats[redTeamId]) {
+      const rTStat = this.teamStats[redTeamId];
+      rTStat.kills += (data.score?.red || 0);
+      rTStat.deaths += (data.score?.blue || 0);
+      rTStat.assists += Math.floor((data.score?.red || 0) * 1.8);
+      rTStat.gold += (data.gold?.red || 55000);
+      rTStat.damage += 220000;
+      rTStat.lord += (data.lords?.red || 0);
+      rTStat.tortoise += (data.turtles?.red || 0);
+      rTStat.tower += (data.turrets?.red || 0);
+    }
+  }
+
   simulatePlayerStatsForMatch(homeTeam: Team, awayTeam: Team, winnerTeamId: string, homeScore: number, awayScore: number, customStats: any) {
     const totalGames = homeScore + awayScore;
 
     if (customStats && customStats.heroes) {
-      customStats.heroes.forEach((h: any) => {
-        const pStat = this.playerStats[h.player.id];
-        if (pStat) {
-          pStat.gamesPlayed += 1;
-          pStat.kills += h.kda.k;
-          pStat.deaths += h.kda.d;
-          pStat.assists += h.kda.a;
-          pStat.totalDamage += h.damageDealt;
-          if (h.side === customStats.winnerSide) {
-            pStat.wins += 1;
-          }
-        }
-      });
-      if (customStats.mvp && customStats.mvp.player) {
-        const mvpStat = this.playerStats[customStats.mvp.player.id];
-        if (mvpStat) mvpStat.mvpCount += 1;
-      }
+      this.recordGameStats(customStats);
       return;
     }
 
@@ -324,6 +399,36 @@ export class TournamentEngine {
         pStat.assists += a;
         pStat.totalDamage += (k * 25000) + (a * 10000) + Math.floor(Math.random() * 20000);
 
+        // Assign hero from signature/pool
+        const sigHeroName = p.signature[Math.floor(Math.random() * p.signature.length)] || 'Suyou';
+        const foundHero = MLBB_HEROES.find(h => h.name.toLowerCase() === sigHeroName.toLowerCase()) || MLBB_HEROES[0];
+        
+        if (!pStat.heroPool) pStat.heroPool = [];
+        const existingH = pStat.heroPool.find((hp: any) => hp.heroId === foundHero.id);
+        if (existingH) {
+          existingH.picks += totalGames;
+          const currentWins = (existingH.wins || 0) + gamesWon;
+          existingH.wins = currentWins;
+          existingH.winRate = Math.round((currentWins / existingH.picks) * 100);
+        } else {
+          pStat.heroPool.push({
+            heroId: foundHero.id,
+            heroName: foundHero.name,
+            picks: totalGames,
+            wins: gamesWon,
+            winRate: Math.round((gamesWon / totalGames) * 100)
+          });
+        }
+
+        // Update global hero stats
+        const gHeroStat = this.heroStats[foundHero.id];
+        if (gHeroStat) {
+          gHeroStat.picks += totalGames;
+          gHeroStat.wins += gamesWon;
+          gHeroStat.losses += (totalGames - gamesWon);
+          gHeroStat.winRate = Math.round((gHeroStat.wins / Math.max(1, gHeroStat.picks)) * 100);
+        }
+
         const score = (k * 3) + (a * 1.5) - (d * 1.5);
         if (score > highestScore) {
           highestScore = score;
@@ -332,7 +437,8 @@ export class TournamentEngine {
       }
 
       if (isWinner && teamMvpCandidate) {
-        teamMvpCandidate.mvpCount += 1;
+        teamMvpCandidate.mvpCount += totalGames > 2 ? 2 : 1;
+        teamMvpCandidate.mvpPoints = (teamMvpCandidate.mvpPoints || 0) + (totalGames > 2 ? 20 : 10);
       }
     };
 
@@ -486,6 +592,7 @@ export class TournamentEngine {
 
   getMvpLeaderboard(limit: number = 10): PlayerSeasonStats[] {
     return Object.values(this.playerStats)
+      .filter(p => (p.mvpPoints || 0) > 0 || p.mvpCount > 0)
       .sort((a, b) => (b.mvpPoints || 0) - (a.mvpPoints || 0) || b.mvpCount - a.mvpCount)
       .slice(0, limit);
   }
@@ -496,13 +603,14 @@ export class TournamentEngine {
     pts: number;
   }[] {
     const sorted = Object.values(this.playerStats)
+      .filter(p => (p.mvpPoints || 0) > 0 || p.mvpCount > 0)
       .sort((a, b) => (b.mvpPoints || 0) - (a.mvpPoints || 0) || b.mvpCount - a.mvpCount)
       .slice(0, limit);
 
     return sorted.map((p, idx) => ({
       rank: idx + 1,
       player: p,
-      pts: p.mvpPoints || ((limit - idx) * 4 + 7)
+      pts: p.mvpPoints || (p.mvpCount * 10)
     }));
   }
 
@@ -516,7 +624,7 @@ export class TournamentEngine {
       .map(p => ({
         player: p,
         lane: p.role,
-        totalUniqueHeroes: p.heroPool?.length || 3,
+        totalUniqueHeroes: p.heroPool?.length || 0,
         heroes: p.heroPool || []
       }))
       .sort((a, b) => b.totalUniqueHeroes - a.totalUniqueHeroes || b.player.kills - a.player.kills);

@@ -299,6 +299,7 @@ export interface PlayerSeasonStats {
     heroId: string;
     heroName: string;
     picks: number;
+    wins?: number;
     winRate: number;
   }[];
 }
