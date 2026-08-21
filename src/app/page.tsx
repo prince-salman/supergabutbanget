@@ -100,7 +100,21 @@ export default function Home() {
     if (saved.playoffMatches) engine.playoffMatches = saved.playoffMatches;
     if (saved.playerStats) engine.playerStats = saved.playerStats;
     if (saved.teamStats) engine.teamStats = saved.teamStats;
-    if (saved.heroStats) engine.heroStats = saved.heroStats;
+    if (saved.heroStats && typeof saved.heroStats === 'object') {
+      Object.keys(engine.heroStats).forEach(hId => {
+        if (saved.heroStats[hId]) {
+          engine.heroStats[hId] = {
+            ...engine.heroStats[hId],
+            ...saved.heroStats[hId],
+            bans: saved.heroStats[hId].bans || 0,
+            picks: saved.heroStats[hId].picks || 0,
+            wins: saved.heroStats[hId].wins || 0,
+            losses: saved.heroStats[hId].losses || 0,
+            winRate: saved.heroStats[hId].winRate || 0
+          };
+        }
+      });
+    }
     if (saved.awards) engine.awards = saved.awards;
     if (saved.championTeam) engine.championTeam = saved.championTeam;
 

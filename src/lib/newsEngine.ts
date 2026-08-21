@@ -380,7 +380,17 @@ export class NewsEngine {
 
   // 4. League-Wide AI Match Coverage (Covers other teams across MPL ID)
   generateAIMatchArticlesForWeek(week: number, tournament: TournamentEngine, userTeamId: string) {
-    const weekMatches = tournament.schedule.filter(m => m.week === week && m.completed && m.homeTeamId !== userTeamId && m.awayTeamId !== userTeamId && m.result);
+    if (!tournament || !tournament.schedule) return;
+
+    const weekMatches = tournament.schedule.filter(m => 
+      m.week === week && 
+      m.completed && 
+      m.homeTeamId !== 'BYE' && 
+      m.awayTeamId !== 'BYE' && 
+      m.homeTeamId !== userTeamId && 
+      m.awayTeamId !== userTeamId && 
+      m.result
+    );
     if (weekMatches.length === 0) return;
 
     // Pick top 2 standout matches to cover in news (Derby priority or 2-0 / 2-1 sweeps)
@@ -395,18 +405,22 @@ export class NewsEngine {
     }).slice(0, 2);
 
     sortedByHype.forEach(m => {
-      const home = tournament.teams.find(t => t.id === m.homeTeamId)!;
-      const away = tournament.teams.find(t => t.id === m.awayTeamId)!;
-      const winner = m.result!.winnerId === home.id ? home : away;
-      const loser = m.result!.winnerId === home.id ? away : home;
-      const winnerScore = m.result!.winnerId === home.id ? m.result!.homeScore : m.result!.awayScore;
-      const loserScore = m.result!.winnerId === home.id ? m.result!.awayScore : m.result!.homeScore;
+      const home = tournament.teams.find(t => t.id === m.homeTeamId);
+      const away = tournament.teams.find(t => t.id === m.awayTeamId);
+      if (!home || !away || !m.result) return;
+
+      const winner = m.result.winnerId === home.id ? home : away;
+      const loser = m.result.winnerId === home.id ? away : home;
+      if (!winner || !loser) return;
+
+      const winnerScore = m.result.winnerId === home.id ? m.result.homeScore : m.result.awayScore;
+      const loserScore = m.result.winnerId === home.id ? m.result.awayScore : m.result.homeScore;
 
       const media = MEDIA_OUTLETS[Math.floor(Math.random() * MEDIA_OUTLETS.length)];
       const isSweep = loserScore === 0;
       
-      const tag1 = home.tag.toLowerCase();
-      const tag2 = away.tag.toLowerCase();
+      const tag1 = (home.tag || '').toLowerCase();
+      const tag2 = (away.tag || '').toLowerCase();
       const isElClasico = (tag1.includes('rrq') && tag2.includes('evos')) || (tag1.includes('evos') && tag2.includes('rrq'));
       const isRoyalDerby = (tag1.includes('onic') && tag2.includes('rrq')) || (tag1.includes('rrq') && tag2.includes('onic'));
       const isDerbySTM = (tag1.includes('btr') && tag2.includes('ae')) || (tag1.includes('ae') && tag2.includes('btr'));
@@ -415,7 +429,9 @@ export class NewsEngine {
       let headline = '';
       let subheadline = '';
       let body: string[] = [];
-      const mvpCandidate = winner.roster[Math.floor(Math.random() * 3)] || winner.roster[0];
+      const mvpCandidate = (winner.roster && winner.roster.length > 0)
+        ? (winner.roster[Math.floor(Math.random() * Math.min(3, winner.roster.length))] || winner.roster[0])
+        : { name: 'Player', role: 'Mid' };
 
       if (isElClasico) {
         headline = `🔥 EL CLASICO INDONESIA: ${winner.name} Bungkam ${loser.name} ${winnerScore}-${loserScore}!`;

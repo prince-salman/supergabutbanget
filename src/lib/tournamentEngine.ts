@@ -507,11 +507,12 @@ export class TournamentEngine {
     const uncompletedMatches = this.schedule.filter(m => m.week === this.currentWeek && !m.completed);
 
     uncompletedMatches.forEach(m => {
-      const homeTeam = this.teams.find(t => t.id === m.homeTeamId)!;
-      const awayTeam = this.teams.find(t => t.id === m.awayTeamId)!;
+      const homeTeam = this.teams.find(t => t.id === m.homeTeamId);
+      const awayTeam = this.teams.find(t => t.id === m.awayTeamId);
+      if (!homeTeam || !awayTeam) return;
 
-      const homePower = homeTeam.reputation + (Math.random() * 20 - 10);
-      const awayPower = awayTeam.reputation + (Math.random() * 20 - 10);
+      const homePower = (homeTeam.reputation || 75) + (Math.random() * 20 - 10);
+      const awayPower = (awayTeam.reputation || 75) + (Math.random() * 20 - 10);
 
       let winnerId = homeTeam.id;
       let homeScore = 2;
