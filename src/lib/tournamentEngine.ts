@@ -668,7 +668,7 @@ export class TournamentEngine {
     this.playoffMatches = [
       {
         id: 'r1_m1',
-        title: 'Play-in Match 1 (Seed 3 vs Seed 6)',
+        title: 'Play-in Match 1 (Seed 3 vs Seed 6) • BO5',
         stageName: 'Round 1',
         homeTeam: seeds[2] || this.teams[2],
         awayTeam: seeds[5] || this.teams[5],
@@ -680,7 +680,7 @@ export class TournamentEngine {
       },
       {
         id: 'r1_m2',
-        title: 'Play-in Match 2 (Seed 4 vs Seed 5)',
+        title: 'Play-in Match 2 (Seed 4 vs Seed 5) • BO5',
         stageName: 'Round 1',
         homeTeam: seeds[3] || this.teams[3],
         awayTeam: seeds[4] || this.teams[4],
@@ -692,7 +692,7 @@ export class TournamentEngine {
       },
       {
         id: 'ub_semi_1',
-        title: 'Upper Bracket Semifinal 1 (Seed 1 vs Winner R1-M1)',
+        title: 'Upper Bracket Semifinal 1 (Seed 1 vs P2 Winner) • BO5',
         stageName: 'UB Semifinals',
         homeTeam: seeds[0] || this.teams[0],
         awayTeam: null,
@@ -704,7 +704,7 @@ export class TournamentEngine {
       },
       {
         id: 'ub_semi_2',
-        title: 'Upper Bracket Semifinal 2 (Seed 2 vs Winner R1-M2)',
+        title: 'Upper Bracket Semifinal 2 (Seed 2 vs P1 Winner) • BO5',
         stageName: 'UB Semifinals',
         homeTeam: seeds[1] || this.teams[1],
         awayTeam: null,
@@ -716,7 +716,7 @@ export class TournamentEngine {
       },
       {
         id: 'lb_semi',
-        title: 'Lower Bracket Semifinals',
+        title: 'Lower Bracket Semifinal (Eliminasi) • BO5',
         stageName: 'LB Semifinals',
         homeTeam: null,
         awayTeam: null,
@@ -728,7 +728,7 @@ export class TournamentEngine {
       },
       {
         id: 'ub_final',
-        title: 'Upper Bracket Final',
+        title: 'Upper Bracket Final (Tiket Grand Final) • BO5',
         stageName: 'UB Final',
         homeTeam: null,
         awayTeam: null,
@@ -740,7 +740,7 @@ export class TournamentEngine {
       },
       {
         id: 'lb_final',
-        title: 'Lower Bracket Final',
+        title: 'Lower Bracket Final (Bronze Match / Decider) • BO5',
         stageName: 'LB Final',
         homeTeam: null,
         awayTeam: null,
@@ -752,7 +752,7 @@ export class TournamentEngine {
       },
       {
         id: 'grand_final',
-        title: 'Grand Finals MPL ID 2026 (BO7)',
+        title: '🏆 Grand Finals MPL ID 2026 (First to 4 Wins!) • BO7',
         stageName: 'Grand Finals',
         homeTeam: null,
         awayTeam: null,

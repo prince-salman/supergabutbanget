@@ -180,19 +180,27 @@ export const PlayoffsScreen: React.FC<PlayoffsScreenProps> = ({
           </div>
         ) : currentMatch ? (
           <div>
-            <div className="text-[10px] font-black text-[#680008] uppercase tracking-wider mb-2 font-mono">
-              MATCH AKTIF: {currentMatch.title}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono text-white ${
+                currentMatch.stageName === 'Grand Finals' ? 'bg-amber-600 animate-pulse' : 'bg-[#680008]'
+              }`}>
+                {currentMatch.stageName === 'Grand Finals' ? '👑 GRAND FINALS (BO7 • FIRST TO 4 WINS)' : '🔥 PLAYOFFS (BO5 • FIRST TO 3 WINS)'}
+              </span>
+            </div>
+
+            <div className="text-xs font-black text-gray-900 uppercase tracking-tight mb-2 font-mpl-title">
+              {currentMatch.title}
             </div>
 
             <div className="flex justify-around items-center bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
               <div className="text-center">
                 <span className="text-sm font-extrabold text-gray-900 block">{currentMatch.homeTeam?.name || 'TBD'}</span>
-                <span className="text-[10px] text-gray-500 font-mono">Seed Tinggi</span>
+                <span className="text-[10px] text-gray-500 font-mono">Tim Home / Seed Tinggi</span>
               </div>
               <span className="text-lg font-black text-[#680008] font-mono">VS</span>
               <div className="text-center">
                 <span className="text-sm font-extrabold text-gray-900 block">{currentMatch.awayTeam?.name || 'TBD'}</span>
-                <span className="text-[10px] text-gray-500 font-mono">Challenger</span>
+                <span className="text-[10px] text-gray-500 font-mono">Tim Away / Challenger</span>
               </div>
             </div>
 
@@ -203,9 +211,9 @@ export const PlayoffsScreen: React.FC<PlayoffsScreenProps> = ({
                     onPlayPlayoffMatch(currentMatch);
                   }
                 }}
-                className="w-full py-3 bg-[#680008] hover:bg-[#82000C] text-white text-xs font-black rounded-xl shadow-lg transition flex items-center justify-center gap-2 uppercase tracking-wider"
+                className="w-full py-3 bg-[#680008] hover:bg-[#82000C] text-white text-xs font-black rounded-xl shadow-lg transition flex items-center justify-center gap-2 uppercase tracking-wider animate-bounce"
               >
-                <Swords className="w-4 h-4 text-mpl-gold" /> Mainkan Match Playoff Tim Anda (Draft 10-Ban)
+                <Swords className="w-4 h-4 text-mpl-gold" /> Mainkan Match Playoff Tim Anda ({currentMatch.stageName === 'Grand Finals' ? 'Seri BO7' : 'Seri BO5'})
               </button>
             ) : (
               <button
@@ -223,72 +231,162 @@ export const PlayoffsScreen: React.FC<PlayoffsScreenProps> = ({
         ) : null}
       </div>
 
-      {/* Bracket Tree */}
-      <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
-        <div className="min-w-[840px] grid grid-cols-6 gap-3">
-          {stages.map(stageName => {
-            const matches = tournament.playoffMatches.filter(m => m.stageName === stageName);
-            if (matches.length === 0) return null;
+      {/* Official Upper & Lower Bracket Layout */}
+      <div className="space-y-6">
+        {/* 1. UPPER BRACKET */}
+        <div className="bg-white p-4 md:p-6 rounded-2xl border border-blue-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-blue-100">
+            <span className="w-3 h-3 rounded-full bg-blue-600"></span>
+            <h3 className="text-sm md:text-base font-black text-blue-900 uppercase font-mpl-title">
+              🔥 UPPER BRACKET (BEST OF 5 - FIRST TO 3 WINS)
+            </h3>
+          </div>
 
-            return (
-              <div key={stageName} className="flex flex-col gap-3">
-                <div className="bg-black text-white p-2 rounded-lg text-center text-[10px] font-black uppercase tracking-wider font-mono">
-                  {stageName}
-                </div>
-
-                {matches.map(m => {
-                  const isUser = (m.homeTeam && m.homeTeam.id === userTeam.id) || (m.awayTeam && m.awayTeam.id === userTeam.id);
-                  const isCurrent = currentMatch && currentMatch.id === m.id;
-                  const isHomeWin = m.winner && m.homeTeam && m.winner.id === m.homeTeam.id;
-                  const isAwayWin = m.winner && m.awayTeam && m.winner.id === m.awayTeam.id;
-
-                  return (
-                    <div
-                      key={m.id}
-                      className={`bg-gray-50 p-3 rounded-xl border text-xs flex flex-col justify-between transition-all ${
-                        isCurrent
-                          ? 'border-[#680008] ring-2 ring-[#680008]/30 shadow-md'
-                          : isUser
-                          ? 'border-blue-500 ring-1 ring-blue-300'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center text-[9px] text-gray-500 font-mono mb-2">
-                        <span className="truncate">{m.title}</span>
-                        <span className={`px-1.5 py-0.2 rounded font-black ${m.completed ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
-                          {m.completed ? 'SELESAI' : 'PENDING'}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className={`p-1.5 rounded flex justify-between items-center ${
-                          isHomeWin ? 'bg-green-100 text-green-900 font-black border border-green-300' : 'bg-white text-gray-800 border border-gray-100'
-                        }`}>
-                          <span className="truncate text-[11px] font-bold">{m.homeTeam ? m.homeTeam.shortName : 'TBD'}</span>
-                          <span className="font-mono font-black">{m.homeScore}</span>
-                        </div>
-
-                        <div className={`p-1.5 rounded flex justify-between items-center ${
-                          isAwayWin ? 'bg-green-100 text-green-900 font-black border border-green-300' : 'bg-white text-gray-800 border border-gray-100'
-                        }`}>
-                          <span className="truncate text-[11px] font-bold">{m.awayTeam ? m.awayTeam.shortName : 'TBD'}</span>
-                          <span className="font-mono font-black">{m.awayScore}</span>
-                        </div>
-                      </div>
-
-                      {m.winner && (
-                        <div className="mt-2 text-[9px] font-black text-green-700 text-center font-mono">
-                          WINNER: {m.winner.shortName}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Play-ins (Round 1) */}
+            <div className="space-y-3">
+              <div className="bg-blue-900 text-white p-1.5 rounded-lg text-center text-[10px] font-black uppercase font-mono">
+                Round 1 (Play-in BO5)
               </div>
-            );
-          })}
+              {tournament.playoffMatches.filter(m => m.stageName === 'Round 1').map(renderMatchCard)}
+            </div>
+
+            {/* UB Semifinals */}
+            <div className="space-y-3">
+              <div className="bg-blue-900 text-white p-1.5 rounded-lg text-center text-[10px] font-black uppercase font-mono">
+                UB Semifinals (BO5)
+              </div>
+              {tournament.playoffMatches.filter(m => m.stageName === 'UB Semifinals').map(renderMatchCard)}
+            </div>
+
+            {/* UB Final */}
+            <div className="space-y-3">
+              <div className="bg-blue-900 text-white p-1.5 rounded-lg text-center text-[10px] font-black uppercase font-mono">
+                UB Final (Tiket Grand Final • BO5)
+              </div>
+              {tournament.playoffMatches.filter(m => m.stageName === 'UB Final').map(renderMatchCard)}
+            </div>
+          </div>
+        </div>
+
+        {/* 2. LOWER BRACKET & GRAND FINAL */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Lower Bracket Column */}
+          <div className="md:col-span-2 bg-white p-4 md:p-6 rounded-2xl border border-red-200 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-red-100">
+              <span className="w-3 h-3 rounded-full bg-red-600"></span>
+              <h3 className="text-sm md:text-base font-black text-red-900 uppercase font-mpl-title">
+                💀 LOWER BRACKET (BEST OF 5 - KNOCKOUT ELIMINASI)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* LB Semifinal */}
+              <div className="space-y-3">
+                <div className="bg-red-900 text-white p-1.5 rounded-lg text-center text-[10px] font-black uppercase font-mono">
+                  LB Semifinal (BO5)
+                </div>
+                {tournament.playoffMatches.filter(m => m.stageName === 'LB Semifinals').map(renderMatchCard)}
+              </div>
+
+              {/* LB Final */}
+              <div className="space-y-3">
+                <div className="bg-red-900 text-white p-1.5 rounded-lg text-center text-[10px] font-black uppercase font-mono">
+                  LB Final (Tiket Grand Final • BO5)
+                </div>
+                {tournament.playoffMatches.filter(m => m.stageName === 'LB Final').map(renderMatchCard)}
+              </div>
+            </div>
+          </div>
+
+          {/* Grand Final Column */}
+          <div className="bg-gradient-to-b from-amber-50 to-amber-100/50 p-4 md:p-6 rounded-2xl border-2 border-amber-400 shadow-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-amber-200">
+                <span className="text-lg">👑</span>
+                <h3 className="text-sm md:text-base font-black text-amber-900 uppercase font-mpl-title">
+                  GRAND FINALS (BO7)
+                </h3>
+              </div>
+
+              <div className="text-[10px] text-amber-800 font-bold mb-3 font-mono">
+                🏆 BEST OF 7 • FIRST TO 4 WINS
+              </div>
+
+              <div className="space-y-3">
+                {tournament.playoffMatches.filter(m => m.stageName === 'Grand Finals').map(renderMatchCard)}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-amber-200 text-center">
+              <span className="text-[10px] text-gray-500 font-bold uppercase block">Pemenang Grand Final:</span>
+              <span className="text-xs font-black text-[#680008] font-mpl-title">JUARA RESMI MPL INDONESIA 2026</span>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   );
+
+  function renderMatchCard(m: PlayoffMatch) {
+    const isUser = (m.homeTeam && m.homeTeam.id === userTeam.id) || (m.awayTeam && m.awayTeam.id === userTeam.id);
+    const isCurrent = currentMatch && currentMatch.id === m.id;
+    const isHomeWin = m.winner && m.homeTeam && m.winner.id === m.homeTeam.id;
+    const isAwayWin = m.winner && m.awayTeam && m.winner.id === m.awayTeam.id;
+    const isBO7 = m.stageName === 'Grand Finals';
+
+    return (
+      <div
+        key={m.id}
+        className={`bg-white p-3 rounded-xl border text-xs flex flex-col justify-between transition-all shadow-sm ${
+          isCurrent
+            ? 'border-[#680008] ring-2 ring-[#680008]/40 shadow-md'
+            : isUser
+            ? 'border-blue-500 ring-1 ring-blue-300'
+            : 'border-gray-200'
+        }`}
+      >
+        <div className="flex justify-between items-center text-[9px] text-gray-500 font-mono mb-2">
+          <span className="truncate font-bold text-gray-700">{m.title}</span>
+          <span className={`px-1.5 py-0.5 rounded font-black ${
+            m.completed ? 'bg-green-100 text-green-800 border border-green-300' : isCurrent ? 'bg-amber-400 text-black font-black animate-pulse' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {m.completed ? 'SELESAI' : isCurrent ? 'LIVE MATCH' : isBO7 ? 'BO7' : 'BO5'}
+          </span>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className={`p-2 rounded-lg flex justify-between items-center border ${
+            isHomeWin ? 'bg-green-50 text-green-900 font-black border-green-300' : 'bg-gray-50 text-gray-800 border-gray-100'
+          }`}>
+            <div className="flex items-center gap-1.5 truncate">
+              {m.homeTeam && (
+                <img src={getTeamLogoUrl(m.homeTeam.shortName, m.homeTeam.themeColor)} alt={m.homeTeam.shortName} className="w-4 h-4 object-contain shrink-0" />
+              )}
+              <span className="truncate text-[11px] font-bold">{m.homeTeam ? m.homeTeam.name : 'TBD'}</span>
+            </div>
+            <span className="font-mono font-black text-sm ml-2">{m.homeScore}</span>
+          </div>
+
+          <div className={`p-2 rounded-lg flex justify-between items-center border ${
+            isAwayWin ? 'bg-green-50 text-green-900 font-black border-green-300' : 'bg-gray-50 text-gray-800 border-gray-100'
+          }`}>
+            <div className="flex items-center gap-1.5 truncate">
+              {m.awayTeam && (
+                <img src={getTeamLogoUrl(m.awayTeam.shortName, m.awayTeam.themeColor)} alt={m.awayTeam.shortName} className="w-4 h-4 object-contain shrink-0" />
+              )}
+              <span className="truncate text-[11px] font-bold">{m.awayTeam ? m.awayTeam.name : 'TBD'}</span>
+            </div>
+            <span className="font-mono font-black text-sm ml-2">{m.awayScore}</span>
+          </div>
+        </div>
+
+        {m.winner && (
+          <div className="mt-2 text-[10px] font-black text-green-700 text-center font-mono bg-green-50 py-1 rounded border border-green-200">
+            🏆 MENANG ({m.homeScore}-{m.awayScore}): {m.winner.name}
+          </div>
+        )}
+      </div>
+    );
+  }
 };

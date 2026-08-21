@@ -266,13 +266,15 @@ export default function Home() {
       saveCareer();
     }
 
-    // 2. Track BO3 series score & determine if series is over
+    // 2. Track series score & determine if series is over (BO3 in Regular Season, BO5 in Playoffs, BO7 in Grand Finals)
     if (activeBO3Series) {
       const isHomeWinner = data.winnerTeam.id === activeBO3Series.homeTeam.id;
       const updatedHomeWins = activeBO3Series.homeWins + (isHomeWinner ? 1 : 0);
       const updatedAwayWins = activeBO3Series.awayWins + (!isHomeWinner ? 1 : 0);
 
-      const requiredWins = (tournament?.stage === 'playoffs' && activeBO3Series.matchInfo?.round === 'grand_final') ? 4 : 2;
+      const isPlayoffs = tournament?.stage === 'playoffs';
+      const isGrandFinal = activeBO3Series.matchInfo?.stageName === 'Grand Finals' || activeBO3Series.matchInfo?.id === 'grand_final' || activeBO3Series.matchInfo?.title?.includes('Grand Final');
+      const requiredWins = isPlayoffs ? (isGrandFinal ? 4 : 3) : 2;
       const isOver = updatedHomeWins >= requiredWins || updatedAwayWins >= requiredWins;
 
       const updatedSeries = {
@@ -320,7 +322,9 @@ export default function Home() {
     }
 
     const series = activeBO3Series;
-    const requiredWins = (tournament.stage === 'playoffs' && series.matchInfo.round === 'grand_final') ? 4 : 2;
+    const isPlayoffs = tournament.stage === 'playoffs';
+    const isGrandFinal = series.matchInfo?.stageName === 'Grand Finals' || series.matchInfo?.id === 'grand_final' || series.matchInfo?.title?.includes('Grand Final');
+    const requiredWins = isPlayoffs ? (isGrandFinal ? 4 : 3) : 2;
 
     if (series.homeWins >= requiredWins || series.awayWins >= requiredWins) {
       handleSeriesFinished(series.homeWins, series.awayWins);

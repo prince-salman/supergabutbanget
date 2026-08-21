@@ -26,12 +26,21 @@ export const RecapScreen: React.FC<RecapScreenProps> = ({
   const homeTeam = seriesInfo ? seriesInfo.homeTeam : recapData.winnerTeam;
   const awayTeam = seriesInfo ? seriesInfo.awayTeam : recapData.loserTeam;
 
+    const isGrandFinal = seriesInfo?.matchId === 'grand_final' || seriesInfo?.matchId?.toString().includes('grand');
+    const isPlayoffs = seriesInfo && (seriesInfo.homeWins >= 3 || seriesInfo.awayWins >= 3 || isGrandFinal || seriesInfo.matchId?.toString().includes('ub_') || seriesInfo.matchId?.toString().includes('lb_') || seriesInfo.matchId?.toString().includes('r1_'));
+    const targetWins = isGrandFinal ? 4 : isPlayoffs ? 3 : 2;
+    const seriesTypeLabel = isGrandFinal 
+      ? 'MPL GRAND FINALS BEST OF 7 (BO7)' 
+      : isPlayoffs 
+      ? 'PLAYOFFS BEST OF 5 (BO5)' 
+      : 'REGULAR SEASON BEST OF 3 (BO3)';
+
   return (
     <main className="max-w-4xl mx-auto px-4 py-8 text-center animate-fadeIn text-gray-900">
-      {/* 1. Series BO3 Progress Header */}
+      {/* 1. Series BO3/BO5/BO7 Progress Header */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-md max-w-xl mx-auto mb-6">
         <div className="text-[11px] font-mono tracking-widest text-red-700 font-black uppercase">
-          {isSeriesOver ? 'SERI MATCH BO3 SELESAI' : `REGULAR SEASON BEST OF 3 (BO3) • GAME ${gameNumber}`}
+          {isSeriesOver ? `SERI MATCH ${seriesTypeLabel} SELESAI` : `${seriesTypeLabel} • GAME ${gameNumber} (FIRST TO ${targetWins} WINS)`}
         </div>
 
         {/* Series Score Display */}
@@ -67,9 +76,9 @@ export const RecapScreen: React.FC<RecapScreenProps> = ({
           </div>
         ) : (
           <div className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 py-1.5 px-3 rounded-lg font-bold">
-            {homeWins === 1 && awayWins === 1
-              ? `Skor Seri imbang 1 - 1! Bersiap untuk Game 3 Penentuan (Decider Game - Side Tim Bertukar)!`
-              : `Seri BO3 berlanjut ke Game ${gameNumber + 1}! Skor saat ini: ${homeWins} - ${awayWins} (Side Tim Bertukar)`}
+            {homeWins === targetWins - 1 && awayWins === targetWins - 1
+              ? `Skor Seri imbang ${homeWins} - ${awayWins}! Bersiap untuk Decider Game Penentuan (Side Tim Bertukar)!`
+              : `Seri ${seriesTypeLabel} berlanjut ke Game ${gameNumber + 1}! Skor saat ini: ${homeWins} - ${awayWins} (Side Tim Bertukar)`}
           </div>
         )}
       </div>
