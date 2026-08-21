@@ -809,55 +809,55 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
 
       {/* Head-to-Head Draft History Modal (Feature 38) */}
       {showH2HModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl border border-gray-200 p-5 sm:p-6 text-left flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[92vh] sm:max-h-[85vh] overflow-y-auto shadow-2xl border border-gray-200 p-4 sm:p-6 text-left flex flex-col my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-3 sm:mb-4">
               <div>
-                <span className="text-[10px] font-mono font-black text-[#680008] uppercase tracking-wider block">
+                <span className="text-[9px] sm:text-[10px] font-mono font-black text-[#680008] uppercase tracking-wider block">
                   📜 DRAFT HISTORY ANALYSIS (FEATURE 38)
                 </span>
-                <h3 className="text-lg font-black text-gray-900 font-mpl-title uppercase">
-                  RIWAYAT DRAFT HEAD-TO-HEAD VS {draftEngine.redTeam.shortName}
+                <h3 className="text-base sm:text-lg font-black text-gray-900 font-mpl-title uppercase truncate">
+                  RIWAYAT DRAFT VS {draftEngine.redTeam.shortName}
                 </h3>
               </div>
               <button
                 onClick={() => setShowH2HModal(false)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-sm"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-sm shrink-0 ml-2"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 text-amber-900">
-                <span className="font-bold block mb-1">💡 Catatan Scouting Analis:</span>
+            <div className="space-y-3 sm:space-y-4 text-xs">
+              <div className="bg-amber-50 p-3 sm:p-3.5 rounded-2xl border border-amber-200 text-amber-900 text-[11px] sm:text-xs leading-relaxed">
+                <span className="font-bold block mb-0.5">💡 Catatan Scouting Analis:</span>
                 Tim {draftEngine.redTeam.name} cenderung memprioritaskan hero assassin agresif dan power pick marksman. Pastikan Anda mengamankan frontline tebal dan anti-burst di Phase 1!
               </div>
 
               {draftEngine.headToHeadHistory.length === 0 ? (
-                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 text-center text-gray-500">
-                  <div className="font-bold">Pertemuan Pertama Musim Ini</div>
-                  <p className="text-[11px] text-gray-400 mt-1">
+                <div className="bg-gray-50 p-5 sm:p-6 rounded-2xl border border-gray-200 text-center text-gray-500">
+                  <div className="font-bold text-xs sm:text-sm">Pertemuan Pertama Musim Ini</div>
+                  <p className="text-[10px] sm:text-[11px] text-gray-400 mt-1">
                     Belum ada riwayat draft resmi melawan {draftEngine.redTeam.name} di musim ini. Data komposisi match ini akan otomatis tersimpan untuk pertemuan berikutnya!
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5 sm:space-y-3">
                   {draftEngine.headToHeadHistory.map((rec, idx) => (
                     <div key={idx} className="bg-gray-50 p-3 rounded-2xl border border-gray-200 space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-mono font-bold text-gray-500">
+                      <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-mono font-bold text-gray-500">
                         <span>{rec.stageStr} • {rec.dateStr}</span>
                         <span className={rec.userWon ? 'text-green-600 font-black' : 'text-red-600 font-black'}>
                           {rec.userWon ? '🏆 MENANG' : '💀 KALAH'} ({rec.score})
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] sm:text-[11px]">
                         <div className="bg-blue-50 p-2 rounded-xl border border-blue-100">
-                          <span className="font-bold text-blue-900 block mb-1">Picks Tim Anda:</span>
+                          <span className="font-bold text-blue-900 block mb-0.5">Picks Tim Anda:</span>
                           <span className="text-gray-700">{rec.userPicks.join(', ')}</span>
                         </div>
                         <div className="bg-red-50 p-2 rounded-xl border border-red-100">
-                          <span className="font-bold text-red-900 block mb-1">Picks Musuh:</span>
+                          <span className="font-bold text-red-900 block mb-0.5">Picks Musuh:</span>
                           <span className="text-gray-700">{rec.enemyPicks.join(', ')}</span>
                         </div>
                       </div>
@@ -867,10 +867,10 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
               )}
             </div>
 
-            <div className="mt-6 pt-3 border-t border-gray-200 flex justify-end">
+            <div className="mt-4 sm:mt-6 pt-3 border-t border-gray-200 flex justify-end">
               <button
                 onClick={() => setShowH2HModal(false)}
-                className="px-5 py-2 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl font-mpl-title uppercase"
+                className="w-full sm:w-auto px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl font-mpl-title uppercase text-center"
               >
                 Kembali ke Layar Draft
               </button>

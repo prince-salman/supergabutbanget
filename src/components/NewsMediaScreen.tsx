@@ -212,47 +212,50 @@ export const NewsMediaScreen: React.FC<NewsMediaScreenProps> = ({
         )}
       </div>
 
-      {/* 5. Full Article Reader Modal */}
+      {/* 5. Full Article Reading Modal */}
       {activeArticle && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 text-left flex flex-col">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 animate-fadeIn text-left overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-3xl w-full max-h-[94vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 flex flex-col my-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-black text-white px-2.5 py-1 rounded-full font-mono uppercase ${activeArticle.mediaOutlet.badgeColor}`}>
+            <div className="bg-gray-900 text-white p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl flex items-center justify-between border-b border-white/10">
+              <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+                <span className={`text-[9px] sm:text-[10px] font-mono font-black text-white px-2 sm:px-2.5 py-0.5 rounded-full uppercase shrink-0 ${activeArticle.mediaOutlet.badgeColor}`}>
                   {activeArticle.mediaOutlet.name}
                 </span>
-                <span className="text-xs font-mono text-gray-500">{activeArticle.weekOrStage} • {activeArticle.timestamp}</span>
+                <span className="text-[10px] sm:text-xs text-gray-400 font-mono truncate">
+                  {activeArticle.timestamp}
+                </span>
               </div>
+
               <button
                 onClick={() => setActiveArticle(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-sm transition shrink-0 ml-2"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-4 sm:space-y-6">
               <div>
-                <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full font-mono uppercase mb-2 inline-block">
+                <span className="text-[9px] sm:text-[10px] font-black text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full font-mono uppercase mb-2 inline-block">
                   {activeArticle.categoryLabel}
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 font-mpl-title leading-tight">
+                <h1 className="text-xl sm:text-3xl font-black text-gray-900 font-mpl-title leading-tight">
                   {activeArticle.headline}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 font-bold mt-2 leading-relaxed">
                   {activeArticle.subheadline}
                 </p>
 
-                <div className="flex items-center justify-between text-xs text-gray-500 font-mono mt-4 pt-3 border-t border-gray-100">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs text-gray-500 font-mono mt-3 sm:mt-4 pt-3 border-t border-gray-100">
                   <span>Oleh: <b>{activeArticle.author}</b></span>
                   <span>👁️ {activeArticle.viewsCount.toLocaleString()} pembaca</span>
                 </div>
               </div>
 
               {/* Article Paragraphs */}
-              <div className="space-y-4 text-xs sm:text-sm text-gray-800 leading-relaxed">
+              <div className="space-y-3 sm:space-y-4 text-xs sm:text-sm text-gray-800 leading-relaxed">
                 {activeArticle.body.map((p, idx) => (
                   <p key={idx}>{p}</p>
                 ))}
@@ -260,14 +263,14 @@ export const NewsMediaScreen: React.FC<NewsMediaScreenProps> = ({
 
               {/* Quotes Section */}
               {activeArticle.quotes && activeArticle.quotes.length > 0 && (
-                <div className="bg-amber-50/60 p-4 sm:p-5 rounded-2xl border border-amber-200 space-y-3">
-                  <div className="text-[10px] font-black text-amber-900 uppercase font-mono tracking-wider">
+                <div className="bg-amber-50/60 p-3.5 sm:p-5 rounded-2xl border border-amber-200 space-y-2.5 sm:space-y-3">
+                  <div className="text-[9px] sm:text-[10px] font-black text-amber-900 uppercase font-mono tracking-wider">
                     🎙️ PERNYATAAN RESMI MEDIA:
                   </div>
                   {activeArticle.quotes.map((q, idx) => (
                     <blockquote key={idx} className="border-l-4 border-amber-500 pl-3 italic text-xs sm:text-sm text-gray-900">
                       "{q.quote}"
-                      <span className="block not-italic text-[10px] font-mono font-bold text-gray-600 mt-1">
+                      <span className="block not-italic text-[9px] sm:text-[10px] font-mono font-bold text-gray-600 mt-1">
                         — {q.speaker} ({q.role})
                       </span>
                     </blockquote>
@@ -276,26 +279,26 @@ export const NewsMediaScreen: React.FC<NewsMediaScreenProps> = ({
               )}
 
               {/* Netizen Comments Section */}
-              <div className="pt-4 border-t border-gray-200">
-                <h4 className="text-xs sm:text-sm font-black text-gray-900 font-mpl-title uppercase tracking-wider mb-3 flex items-center gap-2">
+              <div className="pt-3 sm:pt-4 border-t border-gray-200">
+                <h4 className="text-xs sm:text-sm font-black text-gray-900 font-mpl-title uppercase tracking-wider mb-2.5 sm:mb-3 flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-[#680008]" /> KOMENTAR & REAKSI NETIZEN ({activeArticle.netizenReactions.length})
                 </h4>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {activeArticle.netizenReactions.map(comm => (
-                    <div key={comm.id} className="bg-gray-50 p-3 rounded-2xl border border-gray-200 text-xs">
+                    <div key={comm.id} className="bg-gray-50 p-2.5 sm:p-3 rounded-2xl border border-gray-200 text-xs">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <span className="text-sm">{comm.avatar}</span>
                           <span className="font-bold text-gray-900">{comm.username}</span>
-                          <span className="text-[10px] text-gray-400 font-mono">{comm.handle}</span>
+                          <span className="text-[9px] sm:text-[10px] text-gray-400 font-mono hidden sm:inline">{comm.handle}</span>
                         </div>
-                        <span className="text-[9px] text-gray-400 font-mono">{comm.timeAgo}</span>
+                        <span className="text-[8px] sm:text-[9px] text-gray-400 font-mono">{comm.timeAgo}</span>
                       </div>
-                      <p className="text-gray-700 mt-0.5 leading-snug">
+                      <p className="text-[11px] sm:text-xs text-gray-700 mt-0.5 leading-snug">
                         {comm.content}
                       </p>
-                      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-500 font-mono font-bold">
+                      <div className="mt-1.5 flex items-center gap-1 text-[9px] sm:text-[10px] text-gray-500 font-mono font-bold">
                         <ThumbsUp className="w-3 h-3 text-red-600" /> {comm.likes} likes
                       </div>
                     </div>
@@ -305,10 +308,10 @@ export const NewsMediaScreen: React.FC<NewsMediaScreenProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 p-4 border-t border-gray-200 flex justify-end">
+            <div className="bg-gray-50 p-3.5 sm:p-4 border-t border-gray-200 flex justify-end">
               <button
                 onClick={() => setActiveArticle(null)}
-                className="px-6 py-2 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl transition"
+                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl transition text-center"
               >
                 Tutup Berita
               </button>
