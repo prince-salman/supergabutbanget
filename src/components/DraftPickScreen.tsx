@@ -157,7 +157,7 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
           </div>
         </div>
 
-        {/* Turn Phase, Timer, and Pause / Extend Controls */}
+        {/* Turn Phase & Official Tournament Timer */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="text-right">
             <div className="text-[10px] sm:text-xs font-black text-white uppercase font-mpl-title">
@@ -168,43 +168,8 @@ export const DraftPickScreen: React.FC<DraftPickScreenProps> = ({
             </div>
           </div>
 
-          {/* Time Extender / Pause Button */}
-          {!draftEngine.isCompleted && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  draftEngine.extendTimer(30);
-                  audioMgr.playCommsBeep();
-                  setTick(t => t + 1);
-                }}
-                className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/40 px-2 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-black transition flex items-center gap-1 shadow"
-                title="Tambah Waktu Berpikir (+30 Detik)"
-              >
-                <span>⏱️ +30s</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  draftEngine.togglePauseTimer();
-                  audioMgr.playCommsBeep();
-                  setTick(t => t + 1);
-                }}
-                className={`px-2 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-black transition border shadow ${
-                  draftEngine.isTimerPaused
-                    ? 'bg-green-600 text-white border-green-400 animate-pulse'
-                    : 'bg-white/10 text-gray-300 border-white/20 hover:bg-white/20'
-                }`}
-                title={draftEngine.isTimerPaused ? 'Lanjutkan Waktu' : 'Jeda Waktu Draft'}
-              >
-                {draftEngine.isTimerPaused ? '▶️ Lanjut' : '⏸️ Jeda'}
-              </button>
-            </div>
-          )}
-
           <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-xs sm:text-sm font-black font-mono shadow-lg border border-white/20 ${
-            draftEngine.isTimerPaused
-              ? 'bg-amber-600 text-white'
-              : timeLeft <= 5
+            timeLeft <= 5
               ? 'bg-red-600 animate-pulse text-white'
               : 'bg-gray-800 text-white'
           }`}>
