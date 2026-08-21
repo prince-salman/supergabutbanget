@@ -164,40 +164,40 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       </section>
 
       {/* 2. MAIN BODY SECTION */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8 mt-4 sm:mt-6">
         {/* Next Match & Quick Control Banner */}
-        <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm mb-6 flex flex-wrap justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 flex items-center justify-center shrink-0">
+        <div className="bg-white rounded-xl p-3 sm:p-5 md:p-6 border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
               <img
                 src={getTeamLogoUrl(userTeam.tag, userTeam.themeColor)}
                 alt={userTeam.tag}
-                className="w-11 h-11 object-contain"
+                className="w-10 h-10 sm:w-11 sm:h-11 object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${userTeam.tag}`;
                 }}
               />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">HEAD COACH:</span>
-                <span className="text-sm font-black text-gray-900">{coachName}</span>
-                <span className="text-[10px] bg-red-100 text-[#d32f2f] px-2 py-0.2 rounded font-extrabold uppercase">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase">HEAD COACH:</span>
+                <span className="text-xs sm:text-sm font-black text-gray-900">{coachName}</span>
+                <span className="text-[9px] sm:text-[10px] bg-red-100 text-[#d32f2f] px-1.5 py-0.2 rounded font-extrabold uppercase">
                   {userTeam.name}
                 </span>
               </div>
-              <div className="text-xs text-gray-600 font-medium mt-0.5">
+              <div className="text-[11px] sm:text-xs text-gray-600 font-medium mt-0.5">
                 Target Musim: Lolos 6 Besar Playoff & Raih Gelar Juara MPL ID 2026!
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {!isPlayoffs && !isCompleted && (
               <button
                 onClick={handleSimulateWeek}
-                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-black border border-gray-300 transition flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-[11px] sm:text-xs font-black border border-gray-300 transition flex items-center justify-center gap-1.5"
               >
                 <Calendar className="w-3.5 h-3.5 text-[#680008]" /> Simulasikan Pekan {tournament.currentWeek}
               </button>
@@ -206,7 +206,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             {isPlayoffs && (
               <button
                 onClick={onGoPlayoffs}
-                className="px-5 py-2 rounded-lg bg-[#680008] hover:bg-[#82000C] text-white text-xs font-black shadow-lg flex items-center gap-1.5 transition animate-pulse"
+                className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 rounded-lg bg-[#680008] hover:bg-[#82000C] text-white text-[11px] sm:text-xs font-black shadow-lg flex items-center justify-center gap-1.5 transition animate-pulse"
               >
                 <Trophy className="w-3.5 h-3.5 text-mpl-gold" /> Masuk Babak Playoff
               </button>
@@ -215,7 +215,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             {onGoNews && (
               <button
                 onClick={onGoNews}
-                className="px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-[#680008] text-xs font-black border border-red-200 shadow-sm transition flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-[#680008] text-[11px] sm:text-xs font-black border border-red-200 shadow-sm transition flex items-center justify-center gap-1.5"
               >
                 <Newspaper className="w-3.5 h-3.5 text-[#680008]" /> 📰 Media Berita
               </button>
@@ -223,7 +223,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
             <button
               onClick={onGoAwards}
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-xs font-black shadow transition flex items-center gap-1.5"
+              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-[11px] sm:text-xs font-black shadow transition flex items-center justify-center gap-1.5"
             >
               <Star className="w-3.5 h-3.5 fill-black" /> Malam Penghargaan
             </button>
@@ -231,13 +231,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         </div>
 
         {/* 3. PERINGKAT / REGULAR SEASON STANDINGS TABLE (Exact Replica of id-mpl.com) */}
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-6 mb-8">
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 md:p-6 mb-8">
           {/* Header Title Section */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl md:text-5xl font-mpl-title uppercase tracking-wider text-gray-900 font-black">
+          <div className="text-center mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-mpl-title uppercase tracking-wider text-gray-900 font-black">
               PERINGKAT
             </h1>
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center mt-1.5 sm:mt-2">
               <div className="inline-block border-b-4 border-[#d32f2f] pb-1 px-4 text-xs md:text-sm font-extrabold uppercase tracking-wider text-gray-900 font-mono">
                 Regular Season
               </div>
@@ -245,16 +245,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </div>
 
           {/* Standings Table with Official Team Logos */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[560px] text-left border-collapse">
               <thead>
-                <tr className="bg-black text-white text-[11px] md:text-xs font-black uppercase tracking-wider font-mono">
-                  <th className="py-3 px-3 w-10 text-center">RANK</th>
-                  <th className="py-3 px-4">TEAM</th>
-                  <th className="py-3 px-4 text-center text-[#e74c3c]">MATCH POINT</th>
-                  <th className="py-3 px-4 text-center text-white">MATCH W-L</th>
-                  <th className="py-3 px-4 text-center text-[#e74c3c]">NET GAME WIN</th>
-                  <th className="py-3 px-4 text-center text-white">GAME W-L</th>
+                <tr className="bg-black text-white text-[10px] sm:text-[11px] md:text-xs font-black uppercase tracking-wider font-mono">
+                  <th className="py-2.5 sm:py-3 px-2 sm:px-3 w-10 text-center">RANK</th>
+                  <th className="py-2.5 sm:py-3 px-3 sm:px-4">TEAM</th>
+                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center text-[#e74c3c]">MATCH POINT</th>
+                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center text-white">MATCH W-L</th>
+                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center text-[#e74c3c]">NET GAME WIN</th>
+                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center text-white">GAME W-L</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 text-xs md:text-sm font-bold">

@@ -139,26 +139,15 @@ export default function Home() {
     setCurrentScreen('screen-dashboard');
   };
 
-  // Load Saved Career on mount (from localStorage with Disk API fallback)
+  // Load Saved Career on mount (strictly isolated to this device's localStorage)
   useEffect(() => {
     const saved = safeStorage.load<any>(STORAGE_KEY, (d) => !!d && typeof d.coachName === 'string' && typeof d.userTeamId === 'string');
     if (saved) {
       applyLoadedCareer(saved);
-    } else {
-      // Disk Server API fallback (if browser cache was cleared or Chrome reinstalled)
-      fetch('/api/career')
-        .then(res => res.json())
-        .then(res => {
-          if (res.success && res.data) {
-            applyLoadedCareer(res.data);
-            safeStorage.save(STORAGE_KEY, res.data);
-          }
-        })
-        .catch(() => {});
     }
   }, []);
 
-  // Save career state to both localStorage AND local hard disk
+  // Save career state to this device's localStorage
   const saveCareer = (updatedTourney?: TournamentEngine) => {
     const tourney = updatedTourney || tournament;
     if (!userTeam || !tourney) return;
@@ -181,13 +170,6 @@ export default function Home() {
     };
 
     safeStorage.save(STORAGE_KEY, payload);
-
-    // Save to Disk via /api/career
-    fetch('/api/career', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(() => {});
   };
 
   const handleStartCareer = (teamId: string, name: string) => {

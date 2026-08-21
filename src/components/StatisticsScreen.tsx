@@ -203,8 +203,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ tournament, 
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <table className="w-full min-w-[650px] text-left border-collapse">
                 <thead>
                   <tr className="bg-black text-white text-[10px] md:text-xs font-black uppercase tracking-wider font-mono">
                     <th className="py-3 px-3">PLAYER</th>
@@ -261,8 +261,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ tournament, 
             </h2>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[600px] text-left border-collapse">
               <thead>
                 <tr className="bg-black text-white text-[10px] md:text-xs font-black uppercase tracking-wider font-mono">
                   <th className="py-3 px-4">TEAM</th>
@@ -397,8 +397,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ tournament, 
               </h2>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <table className="w-full min-w-[500px] text-left border-collapse">
                 <thead>
                   <tr className="bg-black text-white text-[10px] md:text-xs font-black uppercase tracking-wider font-mono">
                     <th className="py-3 px-4">HERO</th>
