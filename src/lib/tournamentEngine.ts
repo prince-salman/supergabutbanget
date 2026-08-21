@@ -802,11 +802,11 @@ export class TournamentEngine {
 
   advancePlayoffTree(completedMatch: PlayoffMatch) {
     if (completedMatch.id === 'r1_m1') {
-      const ub1 = this.playoffMatches.find(m => m.id === 'ub_semi_1');
-      if (ub1) ub1.awayTeam = completedMatch.winner;
-    } else if (completedMatch.id === 'r1_m2') {
       const ub2 = this.playoffMatches.find(m => m.id === 'ub_semi_2');
       if (ub2) ub2.awayTeam = completedMatch.winner;
+    } else if (completedMatch.id === 'r1_m2') {
+      const ub1 = this.playoffMatches.find(m => m.id === 'ub_semi_1');
+      if (ub1) ub1.awayTeam = completedMatch.winner;
     } else if (completedMatch.id === 'ub_semi_1' || completedMatch.id === 'ub_semi_2') {
       const ub1 = this.playoffMatches.find(m => m.id === 'ub_semi_1');
       const ub2 = this.playoffMatches.find(m => m.id === 'ub_semi_2');

@@ -783,6 +783,10 @@ export class DraftEngine {
       this.redAssignments = this.autoAssignRosterToHeroes(this.redTeam, this.redPicks);
     }
 
+    // Sync picks array to match final swapped assignments
+    this.bluePicks = this.blueAssignments.map(a => a.hero);
+    this.redPicks = this.redAssignments.map(a => a.hero);
+
     if (this.onStateChange) this.onStateChange();
     if (this.onDraftComplete) {
       this.onDraftComplete({

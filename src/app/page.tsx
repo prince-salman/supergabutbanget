@@ -99,6 +99,9 @@ export default function Home() {
     if (saved.stage) engine.stage = saved.stage;
     if (saved.playoffMatches) engine.playoffMatches = saved.playoffMatches;
     if (saved.playerStats) engine.playerStats = saved.playerStats;
+    if (saved.teamStats) engine.teamStats = saved.teamStats;
+    if (saved.heroStats) engine.heroStats = saved.heroStats;
+    if (saved.awards) engine.awards = saved.awards;
     if (saved.championTeam) engine.championTeam = saved.championTeam;
 
     ensureNextMatchDifficulty(engine);
@@ -155,6 +158,9 @@ export default function Home() {
       stage: tourney.stage,
       playoffMatches: tourney.playoffMatches,
       playerStats: tourney.playerStats,
+      teamStats: tourney.teamStats,
+      heroStats: tourney.heroStats,
+      awards: tourney.awards,
       championTeam: tourney.championTeam,
       newsArticles: newsEngine.articles,
       h2hDraftHistory
