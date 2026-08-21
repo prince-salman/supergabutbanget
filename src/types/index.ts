@@ -358,3 +358,46 @@ export interface HeroSeasonStats {
   losses: number;
   winRate: number;
 }
+
+export type NewsCategory = 'match_recap' | 'interview' | 'meta_analysis' | 'breaking' | 'playoffs' | 'awards';
+
+export interface NetizenComment {
+  id: string;
+  username: string;
+  avatar: string;
+  handle: string;
+  timeAgo: string;
+  content: string;
+  likes: number;
+  badge?: string;
+}
+
+export interface NewsArticle {
+  id: string;
+  mediaOutlet: {
+    name: string;
+    tag: string;
+    logoColor: string;
+    badgeColor: string;
+  };
+  headline: string;
+  subheadline: string;
+  category: NewsCategory;
+  categoryLabel: string;
+  timestamp: string;
+  weekOrStage: string;
+  author: string;
+  featuredTeamTag?: string;
+  featuredPlayerName?: string;
+  featuredHeroName?: string;
+  body: string[];
+  quotes?: {
+    speaker: string;
+    role: string;
+    quote: string;
+  }[];
+  netizenReactions: NetizenComment[];
+  isUserRelated: boolean;
+  viewsCount: number;
+  readTime: string;
+}

@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { audioMgr } from '@/lib/audioManager';
 import { globalRateLimiter } from '@/lib/security';
-import { Trophy, Home, Award, Volume2, VolumeX, RotateCcw, Shield, Calendar, Users, BarChart3, Download, Upload } from 'lucide-react';
+import { Trophy, Home, Award, Volume2, VolumeX, RotateCcw, Shield, Calendar, Users, BarChart3, Download, Upload, Newspaper } from 'lucide-react';
 
 interface NavbarProps {
   currentScreen: string;
@@ -150,6 +150,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <BarChart3 className="w-3 h-3 text-mpl-gold" /> STATISTIK
+          </button>
+
+          <button
+            onClick={() => handleNavClick('screen-news')}
+            className={`px-2 sm:px-2.5 py-1 rounded transition flex items-center gap-1 shrink-0 ${
+              currentScreen === 'screen-news'
+                ? 'bg-white/20 text-white font-extrabold border-b-2 border-mpl-gold'
+                : 'text-gray-200 hover:text-white'
+            }`}
+          >
+            <Newspaper className="w-3 h-3 text-mpl-gold" /> BERITA
           </button>
 
           <button

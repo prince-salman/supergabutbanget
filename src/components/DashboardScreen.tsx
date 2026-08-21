@@ -5,7 +5,7 @@ import { Team } from '@/types';
 import { TournamentEngine } from '@/lib/tournamentEngine';
 import { globalRateLimiter } from '@/lib/security';
 import { getPlayerAvatarUrl, getTeamLogoUrl } from '@/lib/imageAssets';
-import { Swords, Users, Trophy, ChevronRight, ChevronLeft, Play, Star, Calendar, Zap, Shield, Sparkles } from 'lucide-react';
+import { Swords, Users, Trophy, ChevronRight, ChevronLeft, Play, Star, Calendar, Zap, Shield, Sparkles, Newspaper } from 'lucide-react';
 
 interface DashboardScreenProps {
   userTeam: Team;
@@ -15,6 +15,7 @@ interface DashboardScreenProps {
   onAdvanceWeek: () => void;
   onGoPlayoffs: () => void;
   onGoAwards: () => void;
+  onGoNews?: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -24,7 +25,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onEnterDraft,
   onAdvanceWeek,
   onGoPlayoffs,
-  onGoAwards
+  onGoAwards,
+  onGoNews
 }) => {
   const [tickerWeek, setTickerWeek] = useState<number>(tournament.currentWeek);
 
@@ -206,6 +208,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 className="px-5 py-2 rounded-lg bg-[#680008] hover:bg-[#82000C] text-white text-xs font-black shadow-lg flex items-center gap-1.5 transition animate-pulse"
               >
                 <Trophy className="w-3.5 h-3.5 text-mpl-gold" /> Masuk Babak Playoff
+              </button>
+            )}
+
+            {onGoNews && (
+              <button
+                onClick={onGoNews}
+                className="px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-[#680008] text-xs font-black border border-red-200 shadow-sm transition flex items-center gap-1.5"
+              >
+                <Newspaper className="w-3.5 h-3.5 text-[#680008]" /> 📰 Media Berita
               </button>
             )}
 

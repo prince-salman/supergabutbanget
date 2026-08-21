@@ -18,6 +18,9 @@ import { PlayoffsScreen } from '@/components/PlayoffsScreen';
 import { AwardsScreen } from '@/components/AwardsScreen';
 import { StatisticsScreen } from '@/components/StatisticsScreen';
 import { ScheduleScreen } from '@/components/ScheduleScreen';
+import { NewsMediaScreen } from '@/components/NewsMediaScreen';
+import { newsEngine } from '@/lib/newsEngine';
+import { NewsArticle } from '@/types';
 
 const STORAGE_KEY = 'mpl_coach_secure_v2';
 
@@ -26,6 +29,7 @@ export default function Home() {
   const [coachName, setCoachName] = useState<string>('Coach Salman');
   const [userTeam, setUserTeam] = useState<Team | null>(null);
   const [tournament, setTournament] = useState<TournamentEngine | null>(null);
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
 
   // Active match flow state
   const [activeDraftEngine, setActiveDraftEngine] = useState<DraftEngine | null>(null);
@@ -65,9 +69,18 @@ export default function Home() {
 
     ensureNextMatchDifficulty(engine);
 
-    setCoachName(sanitizeInputText(saved.coachName, 24) || 'Coach Salman');
+    const cName = sanitizeInputText(saved.coachName, 24) || 'Coach Salman';
+    setCoachName(cName);
     setUserTeam(team);
     setTournament(engine);
+
+    if (saved.newsArticles && Array.isArray(saved.newsArticles) && saved.newsArticles.length > 0) {
+      newsEngine.articles = saved.newsArticles;
+    } else {
+      newsEngine.initSeasonNews(team, cName);
+    }
+    setNewsArticles([...newsEngine.articles]);
+
     setCurrentScreen('screen-dashboard');
   };
 
@@ -104,7 +117,8 @@ export default function Home() {
       stage: tourney.stage,
       playoffMatches: tourney.playoffMatches,
       playerStats: tourney.playerStats,
-      championTeam: tourney.championTeam
+      championTeam: tourney.championTeam,
+      newsArticles: newsEngine.articles
     };
 
     safeStorage.save(STORAGE_KEY, payload);
@@ -127,6 +141,10 @@ export default function Home() {
     setCoachName(cleanName);
     setUserTeam(team);
     setTournament(engine);
+
+    newsEngine.initSeasonNews(team, cleanName);
+    setNewsArticles([...newsEngine.articles]);
+
     setCurrentScreen('screen-dashboard');
 
     const payload = {
@@ -138,7 +156,8 @@ export default function Home() {
       stage: engine.stage,
       playoffMatches: engine.playoffMatches,
       playerStats: engine.playerStats,
-      championTeam: engine.championTeam
+      championTeam: engine.championTeam,
+      newsArticles: newsEngine.articles
     };
 
     safeStorage.save(STORAGE_KEY, payload);
@@ -260,9 +279,11 @@ export default function Home() {
   };
 
   const handleMatchFinish = (data: PostMatchData) => {
-    // 1. Record real game stats into tournament engine
-    if (tournament) {
+    // 1. Record real game stats into tournament engine & generate news
+    if (tournament && userTeam) {
       tournament.recordGameStats(data);
+      newsEngine.generateMatchArticle(data, activeBO3Series, tournament, coachName, userTeam.id);
+      setNewsArticles([...newsEngine.articles]);
       saveCareer();
     }
 
@@ -362,6 +383,8 @@ export default function Home() {
     if (!tournament) return;
     const res = tournament.advanceWeek();
     ensureNextMatchDifficulty(tournament);
+    newsEngine.generateWeeklyRecap(tournament.currentWeek, tournament);
+    setNewsArticles([...newsEngine.articles]);
     saveCareer();
     if (res.status === 'playoffs_started') {
       setCurrentScreen('screen-playoffs');
@@ -381,7 +404,12 @@ export default function Home() {
 
   const handleSimulatePlayoffMatch = () => {
     if (!tournament) return;
+    const match = tournament.getCurrentPlayoffMatch();
     tournament.simulateCurrentPlayoffMatch();
+    if (match) {
+      newsEngine.generatePlayoffNews(match, coachName, match.stageName === 'Grand Finals');
+      setNewsArticles([...newsEngine.articles]);
+    }
     saveCareer();
     setTournament(Object.assign(Object.create(Object.getPrototypeOf(tournament)), tournament));
   };
@@ -415,6 +443,7 @@ export default function Home() {
             onAdvanceWeek={handleAdvanceWeek}
             onGoPlayoffs={() => setCurrentScreen('screen-playoffs')}
             onGoAwards={() => setCurrentScreen('screen-awards')}
+            onGoNews={() => setCurrentScreen('screen-news')}
           />
         )}
 
@@ -454,6 +483,15 @@ export default function Home() {
           <StatisticsScreen
             tournament={tournament}
             userTeam={userTeam}
+          />
+        )}
+
+        {currentScreen === 'screen-news' && userTeam && (
+          <NewsMediaScreen
+            articles={newsArticles}
+            coachName={coachName}
+            userTeamName={userTeam.name}
+            onGoDashboard={() => setCurrentScreen('screen-dashboard')}
           />
         )}
 
