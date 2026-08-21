@@ -113,7 +113,7 @@ export class NewsEngine {
     ];
   }
 
-  // 2. Generate Match Coverage Article
+  // 2. Generate Highly Realistic & Dynamic Match Coverage Article
   generateMatchArticle(
     matchData: PostMatchData,
     seriesInfo: any,
@@ -126,98 +126,190 @@ export class NewsEngine {
     const media = MEDIA_OUTLETS[Math.floor(Math.random() * MEDIA_OUTLETS.length)];
     const mvp = matchData.mvp;
 
+    const winnerSide = matchData.winnerSide;
+    const loserSide = winnerSide === 'blue' ? 'red' : 'blue';
+
+    const winnerKills = matchData.score ? matchData.score[winnerSide] : 15;
+    const loserKills = matchData.score ? matchData.score[loserSide] : 8;
+    const winnerLords = matchData.lords ? matchData.lords[winnerSide] : 1;
+    const loserLords = matchData.lords ? matchData.lords[loserSide] : 0;
+    const winnerTurrets = matchData.turrets ? matchData.turrets[winnerSide] : 6;
+    const loserTurrets = matchData.turrets ? matchData.turrets[loserSide] : 1;
+    const durationMin = Math.floor((matchData.duration || 720) / 60);
+
     const gameNum = seriesInfo ? seriesInfo.gameNumber : 1;
     const isSeriesOver = seriesInfo ? seriesInfo.isSeriesOver : true;
-    const scoreStr = seriesInfo ? `${seriesInfo.homeWins} - ${seriesInfo.awayWins}` : `${matchData.score.blue} - ${matchData.score.red} Kills`;
+    const homeWins = seriesInfo ? seriesInfo.homeWins : 1;
+    const awayWins = seriesInfo ? seriesInfo.awayWins : 0;
+    const scoreStr = seriesInfo ? `${homeWins} - ${awayWins}` : `${winnerKills} - ${loserKills} Kills`;
+
+    // Dynamic Scenario Detection
+    const isComeback = winnerKills < loserKills;
+    const isStomp = (winnerKills - loserKills >= 10) || (loserTurrets === 0);
+    const isBloodBath = (winnerKills + loserKills) >= 28;
+    const isLateGameWar = durationMin >= 18;
+    const isStealLord = winnerLords > 0 && loserKills >= winnerKills - 3;
+    const isCleanZeroDeath = mvp.kda.d === 0;
+
+    // Detect Derby Matchup
+    const tag1 = matchData.winnerTeam.tag.toLowerCase();
+    const tag2 = matchData.loserTeam.tag.toLowerCase();
+    const isElClasico = (tag1.includes('rrq') && tag2.includes('evos')) || (tag1.includes('evos') && tag2.includes('rrq'));
+    const isRoyalDerby = (tag1.includes('onic') && tag2.includes('rrq')) || (tag1.includes('rrq') && tag2.includes('onic'));
+    const isDerbySTM = (tag1.includes('btr') && tag2.includes('ae')) || (tag1.includes('ae') && tag2.includes('btr'));
 
     let headline = '';
     let subheadline = '';
     let body: string[] = [];
     let quotes: { speaker: string; role: string; quote: string }[] = [];
 
-    if (isUserMatch && isUserWinner) {
-      const victoryTitles = [
-        `Kecerdikan Taktik Coach ${coachName} Antar ${matchData.winnerTeam.name} Tundukkan ${matchData.loserTeam.name}!`,
-        `${mvp.player.name} Tampil Gemilang dengan ${mvp.hero.name}, ${matchData.winnerTeam.name} Raih Kemenangan Krusial!`,
-        `Masterclass 10-Ban! ${matchData.winnerTeam.name} Bungkam ${matchData.loserTeam.name} dengan Skor ${scoreStr}!`,
-        `Dominasi Total di Land of Dawn: ${matchData.winnerTeam.name} Kunci Poin Berharga Lawan ${matchData.loserTeam.name}!`
-      ];
-      headline = victoryTitles[Math.floor(Math.random() * victoryTitles.length)];
-      subheadline = `Performa memukau dari ${mvp.player.name} (${mvp.hero.name}) dinobatkan sebagai MVP pertandingan.`;
+    // --- Scenario 1: EL CLASICO INDONESIA ---
+    if (isElClasico) {
+      if (isUserWinner) {
+        headline = `👑 RAJA EL CLASICO! ${matchData.winnerTeam.name} Pecundangi ${matchData.loserTeam.name} Lewat Taktik Jenius Coach ${coachName}!`;
+        subheadline = `Atmosfer panggung meledak saat ${mvp.player.name} dinobatkan sebagai Player of the Match.`;
+      } else {
+        headline = `👑 Laga Sarat Emosi! ${matchData.winnerTeam.name} Rengkuh Kemenangan El Clasico atas ${matchData.loserTeam.name} (${scoreStr})`;
+        subheadline = `Coach ${coachName} akui pertahanan lawan sangat disiplin saat perebutan Lord krusial.`;
+      }
+      body.push(`Laga bertajuk El Clasico Indonesia antara ${matchData.winnerTeam.name} dan ${matchData.loserTeam.name} menyajikan tontonan dengan tensi luar biasa tinggi di arena MPL.`);
+    }
+    // --- Scenario 2: THE ROYAL DERBY ---
+    else if (isRoyalDerby) {
+      headline = `⚡ THE ROYAL DERBY MEMANAS! ${matchData.winnerTeam.name} Tundukkan ${matchData.loserTeam.name} dengan Skor ${scoreStr}!`;
+      subheadline = `Perang strategi 10-Ban dan perang mekanik tingkat dewa tersaji sepanjang ${durationMin} menit laga.`;
+      body.push(`Duel para raja di Land of Dawn kembali membuktikan bahwa The Royal Derby selalu menghadirkan pertarungan mekanik paling presisi di MPL ID.`);
+    }
+    // --- Scenario 3: DERBY STM ---
+    else if (isDerbySTM) {
+      headline = `🥊 DERBY STM BERDARAH! ${matchData.winnerTeam.name} Keluar Sebagai Pemenang Usai Hantam ${matchData.loserTeam.name}!`;
+      subheadline = `Adu taunting dan jual beli serangan brutal berakhir manis untuk kubu ${matchData.winnerTeam.name}.`;
+      body.push(`Sesuai julukannya, Derby STM antara ${matchData.winnerTeam.name} dan ${matchData.loserTeam.name} berlangsung tanpa kompromi sejak menit pertama.`);
+    }
+    // --- Scenario 4: DRAMATIC COMEBACK (Kalah Kills tapi Menang Game) ---
+    else if (isComeback) {
+      if (isUserWinner) {
+        headline = `🔥 COMEBACK IS REAL! Sempat Tertinggal Kills, ${matchData.winnerTeam.name} Balikkan Keadaan Lawan ${matchData.loserTeam.name}!`;
+        subheadline = `Kecerdikan makro Coach ${coachName} membuahkan teamfight pembalik keadaan di menit ke-${durationMin}.`;
+      } else {
+        headline = `😱 Kena Tikung Menit Akhir! ${matchData.winnerTeam.name} Curi Kemenangan Dramatis dari ${matchData.loserTeam.name}`;
+        subheadline = `Satu teamfight di area Lord mengubah segalanya bagi kubu ${matchData.loserTeam.name}.`;
+      }
+      body.push(`Pertandingan ini membuktikan bahwa selisih kill bukanlah segalanya di Land of Dawn. Meskipun ${matchData.loserTeam.name} sempat unggul agresivitas (${loserKills} vs ${winnerKills} kills), ${matchData.winnerTeam.name} menunjukkan mentalitas baja.`);
+    }
+    // --- Scenario 5: STOMP / DOMINASI TOTAL (Bantai Mutlak) ---
+    else if (isStomp) {
+      if (isUserWinner) {
+        headline = `🚀 BANTAI MUTLAK! Coach ${coachName} Bawa ${matchData.winnerTeam.name} Gilas ${matchData.loserTeam.name} Tanpa Ampun (${winnerKills}-${loserKills})!`;
+        subheadline = `Dominasi total di semua lane, ${mvp.player.name} (${mvp.hero.name}) panen kill tanpa perlawanan berarti.`;
+      } else {
+        headline = `🌪️ Terkena Badai Agresivitas! ${matchData.loserTeam.name} Tak Berdaya Dihantam ${matchData.winnerTeam.name} (${scoreStr})`;
+        subheadline = `Evaluasi besar menanti skuad asuhan Coach ${coachName} usai kalah tempo sejak early game.`;
+      }
+      body.push(`Permainan luar biasa disiplin dan tempo super agresif dipertontonkan oleh ${matchData.winnerTeam.name}. Sejak menit awal, mereka mengunci seluruh area jungle dan menghabisi ${loserTurrets === 0 ? 'seluruh turret musuh tanpa sisa' : 'pertahanan lawan dengan mulus'}.`);
+    }
+    // --- Scenario 6: HIGH-KILL BLOODBATH ---
+    else if (isBloodBath) {
+      headline = `🩸 HUJAN KILL DI LAND OF DAWN! ${matchData.winnerTeam.name} Tundukkan ${matchData.loserTeam.name} dalam Duel ${winnerKills + loserKills} Kills!`;
+      subheadline = `Pertarungan penuh kontak fisik dan jual beli serangan tanpa henti memukau ribuan penonton.`;
+      body.push(`Tidak ada kata mundur bagi kedua skuad. Sebanyak total ${winnerKills + loserKills} kills tercipta dalam duel berkecepatan tinggi yang menguras fisik dan mental kedua tim.`);
+    }
+    // --- Scenario 7: STANDARD TACTICAL MASTERCLASS ---
+    else {
+      if (isUserWinner) {
+        headline = `🎯 Taktik 10-Ban Berjalan Sempurna, ${matchData.winnerTeam.name} Kunci Kemenangan Lawan ${matchData.loserTeam.name} (${scoreStr})!`;
+        subheadline = `Rotasi objektif disiplin dan pengawalan Lord mengantar tim asuhan Coach ${coachName} meraih poin krusial.`;
+      } else {
+        headline = `⚔️ Adu Taktik Sengit: ${matchData.winnerTeam.name} Amankan Kemenangan Berharga atas ${matchData.loserTeam.name}`;
+        subheadline = `Perlawanan ketat tersaji hingga Lord terakhir mengakhiri duel di menit ke-${durationMin}.`;
+      }
+      body.push(`Pertandingan sarat analisis taktikal tersaji antara ${matchData.winnerTeam.name} dan ${matchData.loserTeam.name}. Kedua tim saling membaca komposisi draft 10-Ban yang dipersiapkan oleh masing-masing Head Coach.`);
+    }
 
-      body = [
-        `Pertandingan sengit antara ${matchData.winnerTeam.name} dan ${matchData.loserTeam.name} berakhir dengan senyum lebar bagi kubu ${matchData.winnerTeam.name}. Di bawah arahan taktis Coach ${coachName}, tim berhasil mengeksekusi rencana draft dengan sangat rapi.`,
-        `Fase laning disiplin dan penguasaan objektif Lord/Turtle menjadi pembeda utama. ${mvp.player.name} yang memainkan hero andalannya [${mvp.hero.name}] keluar sebagai pahlawan dengan torehan KDA memukau (${mvp.kda.k}/${mvp.kda.d}/${mvp.kda.a}) serta kontribusi teamfight masif.`,
-        `${matchData.loserTeam.name} sempat memberikan perlawanan sengit, namun pertahanan kokoh dan inisiasi tepat waktu dari skuad Coach ${coachName} berhasil mengamankan kemenangan mutlak.`
-      ];
+    // Detail Body Content & MVP Accolades
+    body.push(
+      `${mvp.player.name} yang dipercaya menunggangi hero comfort [${mvp.hero.name}] keluar sebagai pahlawan pertandingan. Dengan torehan statistik ${mvp.kda.k} Kills, ${mvp.kda.d} Deaths, dan ${mvp.kda.a} Assists${isCleanZeroDeath ? ' (Perfect KDA tanpa terbunuh sekali pun!)' : ''}, kontribusinya saat kontes perebutan Lord di menit ke-${durationMin} menjadi kunci mutlak keberhasilan mengunci kemenangan.`
+    );
 
+    if (isUserWinner) {
+      body.push(
+        `Kemenangan ini membawa suntikan moral dan antusiasme luar biasa bagi fanbase ${matchData.winnerTeam.name}, sekaligus menegaskan tangan dingin Coach ${coachName} dalam meracik strategi turnamen kasta tertinggi.`
+      );
       quotes = [
         {
           speaker: `Coach ${coachName}`,
           role: `Head Coach ${matchData.winnerTeam.name}`,
-          quote: `Anak-anak menjalankan instruksi dengan sangat disiplin. Kami tahu titik lemah draft musuh dan memanfaatkannya sejak fase kontes Turtle.`
+          quote: isComeback
+            ? `Kami tahu di early game kami tertekan, tapi saya selalu bilang ke pemain: tetap sabar, tunggu momentum Lord dan scaling hero kita. Eksekusi anak-anak luar biasa!`
+            : `Draft kami berjalan sesuai rencana 100%. Kami menghukum kesalahan posisi musuh dan bermain dengan kedisiplinan tinggi.`
         },
         {
           speaker: mvp.player.name,
           role: `MVP Match (${mvp.player.role})`,
-          quote: `Kredit untuk Coach ${coachName} yang ngasih hero nyaman buat saya. Sinergi tim lagi on-fire banget!`
+          quote: `Terima kasih untuk Coach ${coachName} atas draft yang sangat nyaman. Kemenangan ini untuk semua suporter yang selalu percaya pada kami!`
         }
       ];
-    } else if (isUserMatch && !isUserWinner) {
-      const defeatTitles = [
-        `${matchData.winnerTeam.name} Tampil Perkasa, Redam Strategi ${matchData.loserTeam.name} dengan Skor ${scoreStr}`,
-        `Pertarungan Ketat! ${matchData.winnerTeam.name} Curi Kemenangan dari ${matchData.loserTeam.name}`,
-        `Evaluasi Draft Menanti: ${matchData.loserTeam.name} Harus Mengakui Keunggulan ${matchData.winnerTeam.name}`
-      ];
-      headline = defeatTitles[Math.floor(Math.random() * defeatTitles.length)];
-      subheadline = `Coach ${coachName} berjanji akan melakukan evaluasi menyeluruh jelang pertandingan berikutnya.`;
-
-      body = [
-        `${matchData.loserTeam.name} harus menelan pil pahit setelah ditaklukkan oleh ${matchData.winnerTeam.name} dalam duel berintensitas tinggi di panggung MPL.`,
-        `Meski sempat memberikan perlawanan lewat aksi individu apik, eksekusi teamfight dan keunggulan makro dari ${matchData.winnerTeam.name} terbukti terlalu tangguh. ${mvp.player.name} dari tim pemenang mengamankan gelar MVP.`,
-        `Coach ${coachName} dalam sesi tanya jawab media menyatakan timnya akan segera mereset mental dan mempertajam drafting untuk laga berikutnya.`
-      ];
-
+    } else if (isUserMatch) {
+      body.push(
+        `Bagi ${matchData.loserTeam.name}, kekalahan ini menjadi bahan refleksi berharga. Coach ${coachName} menyatakan bahwa skuadnya akan segera mempelajari rekaman match untuk memperbaiki transisi teamfight jelang laga selanjutnya.`
+      );
       quotes = [
         {
           speaker: `Coach ${coachName}`,
           role: `Head Coach ${matchData.loserTeam.name}`,
-          quote: 'Kami melakukan beberapa kesalahan kecil saat rotasi yang berakibat fatal. Kami akan belajar dan bangkit lebih kuat!'
+          quote: `Kami kehilangan beberapa objektif penting saat momen perebutan Lord. Ini pelajaran berharga dan kami berjanji akan bangkit lebih kuat di laga berikutnya.`
         }
       ];
     } else {
-      // AI vs AI Match
-      headline = `${matchData.winnerTeam.name} Taklukkan ${matchData.loserTeam.name} (${scoreStr}) dalam Laga Penuh Gengsi!`;
-      subheadline = `${mvp.player.name} dinobatkan sebagai MVP usai membawa timnya mengunci poin penuh.`;
-      body = [
-        `Pertandingan sengit antara dua tim raksasa ${matchData.winnerTeam.name} dan ${matchData.loserTeam.name} menyuguhkan aksi adu mekanik kelas dunia.`,
-        `${matchData.winnerTeam.name} berhasil keluar sebagai pemenang berkat keunggulan strategi 10-Ban dan penguasaan area Lord yang disiplin.`
+      quotes = [
+        {
+          speaker: mvp.player.name,
+          role: `Player of the Match (${matchData.winnerTeam.name})`,
+          quote: `Pertandingan yang sangat keras. ${matchData.loserTeam.name} tim yang tangguh, tapi kami berhasil menjaga fokus hingga base terakhir musuh tumbang.`
+        }
       ];
     }
 
+    // Generate Dynamic Real Netizen Reactions
     const randomNetizens = [...NETIZEN_HANDLES].sort(() => 0.5 - Math.random()).slice(0, 3);
     const comments: NetizenComment[] = randomNetizens.map((n, idx) => {
-      const posComments = [
-        `Gila gameplay ${mvp.player.name} gacor parah! MVP layak banget! 👑`,
-        `Draft Coach ${coachName} emang selalu di luar nalar, respect! 🔥`,
-        `Match seru banget parah, Land of Dawn bergetar!`,
-        `Mantap banget rotasinya rapih, pertahankan konsistensi ini!`
-      ];
-      const negComments = [
-        `Game seru tapi sayang kalah tipis, semangat next match Coach! 💪`,
-        `Draft game tadi butuh lebih banyak frontline tank sih menurutku.`,
-        `Tetap dukung, masih ada game berikutnya untuk bangkit!`
-      ];
+      let content = '';
+      if (isElClasico) {
+        content = isUserWinner 
+          ? `EL CLASICO IS OURS! 👑 Coach ${coachName} emang masternya panggung besar! #Viva${matchData.winnerTeam.tag}`
+          : `Gila El Clasico panas banget, match terseru musim ini! Respect kedua tim! 🔥`;
+      } else if (isComeback) {
+        content = `GOKIL COMEBACK IS REAL! Udah ketar-ketir liat kill ketinggalan, taunya dibalikin pas war Lord! 😱🔥`;
+      } else if (isStomp) {
+        content = isUserWinner 
+          ? `Gak ada obat pembantaian ini mah! 10-Ban Coach ${coachName} bener-bener matiin hero core musuh! 🚀`
+          : `Harus evaluasi draft sih, early game langsung kena bantai gitu tempo musuh kenceng bgt.`;
+      } else if (isCleanZeroDeath) {
+        content = `${mvp.player.name} main ${mvp.hero.name} 0 death gila banget positioningnya! MVP tanpa tanding! 👑`;
+      } else {
+        const standardPool = isUserWinner
+          ? [
+              `Gameplay ${mvp.player.name} gacor parah! MVP layak banget! 👑`,
+              `Draft Coach ${coachName} emang selalu di luar nalar, respect! 🔥`,
+              `Kawal terus sampe Grand Finals! Skuad lagi on-fire banget!`,
+              `Mantap rotasinya rapih banget, pertahankan performa ini!`
+            ]
+          : [
+              `Game seru tapi sayang kalah tipis di Lord terakhir, semangat next match Coach! 💪`,
+              `Draft game tadi butuh lebih banyak anti-burst sih menurutku, tapi overall udah bagus!`,
+              `Tetap dukung, masih ada game berikutnya untuk bangkit!`
+            ];
+        content = standardPool[Math.floor(Math.random() * standardPool.length)];
+      }
 
-      const pool = isUserWinner ? posComments : negComments;
       return {
         id: `c_${Date.now()}_${idx}`,
         username: n.name,
         handle: n.handle,
         avatar: n.avatar,
-        timeAgo: `${(idx + 1) * 7}m lalu`,
-        content: pool[Math.floor(Math.random() * pool.length)],
-        likes: Math.floor(Math.random() * 250) + 15
+        timeAgo: `${(idx + 1) * 6}m lalu`,
+        content,
+        likes: Math.floor(Math.random() * 320) + 25
       };
     });
 
@@ -238,8 +330,8 @@ export class NewsEngine {
       quotes,
       netizenReactions: comments,
       isUserRelated: isUserMatch,
-      viewsCount: Math.floor(Math.random() * 20000) + 5000,
-      readTime: '2 min read'
+      viewsCount: Math.floor(Math.random() * 24000) + 7500,
+      readTime: `${Math.max(2, Math.floor(durationMin / 5))} min read`
     };
 
     this.articles.unshift(newArticle);
