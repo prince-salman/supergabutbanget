@@ -176,6 +176,9 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
         items: [] as MLBBItem[],
         kda: { k: 0, d: 0, a: 0 },
         streak: 0,
+        spreeStreak: 0,
+        multiKillChain: 0,
+        lastKillTime: 0,
         isDead: false,
         respawnTimer: 0,
         damageDealt: 0,
@@ -1072,10 +1075,28 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
               nearestEnemy.kda.d += 1;
               nearestEnemy.respawnTimer = Math.min(55, 12 + nearestEnemy.level * 2.8);
               
+              // Reset victim's streaks upon death
+              const victimSpree = nearestEnemy.spreeStreak || nearestEnemy.streak || 0;
+              nearestEnemy.streak = 0;
+              nearestEnemy.spreeStreak = 0;
+              nearestEnemy.multiKillChain = 0;
+
               h.kda.k += 1;
-              h.streak = (h.streak || 0) + 1;
               h.gold += 320;
               state.score[h.side as 'blue' | 'red'] += 1;
+
+              // Multi-Kill Combo Window (Max 10 seconds between kills for Double/Triple/Maniac/Savage)
+              const timeSinceLastKill = now - (h.lastKillTime || 0);
+              if (timeSinceLastKill <= 10000) {
+                h.multiKillChain = (h.multiKillChain || 0) + 1;
+              } else {
+                h.multiKillChain = 1;
+              }
+              h.lastKillTime = now;
+
+              // Spree Streak (Lifetime kills without dying)
+              h.spreeStreak = (h.spreeStreak || 0) + 1;
+              h.streak = h.spreeStreak;
 
               // 2. Taunting & Recall Tas-Tas (50% chance on kill)
               if (Math.random() < 0.65) {
@@ -1104,30 +1125,57 @@ export const MatchScreen: React.FC<MatchScreenProps> = ({
                 killSub = 'First Blood Diamankan!';
                 logCommentary(`🩸 FIRST BLOOD! ${h.playerName} (${h.heroName}) menumbangkan ${nearestEnemy.playerName} (${nearestEnemy.heroName})!`, 'kill');
                 audioMgr.playFirstBlood();
-              } else if (h.streak === 2) {
+              } else if (h.multiKillChain === 2) {
                 killTitle = 'DOUBLE KILL';
+                killSub = 'Double Kill!';
                 logCommentary(`⚡ DOUBLE KILL! ${h.playerName} (${h.heroName}) membukukan Double Kill!`, 'kill');
                 audioMgr.playDoubleKill();
-              } else if (h.streak === 3) {
+              } else if (h.multiKillChain === 3) {
                 killTitle = 'TRIPLE KILL';
+                killSub = 'Triple Kill!';
                 logCommentary(`🔥 TRIPLE KILL! ${h.playerName} (${h.heroName}) membantai pertahanan musuh!`, 'kill');
                 audioMgr.playTripleKill();
-              } else if (h.streak === 4) {
+              } else if (h.multiKillChain === 4) {
                 killTitle = 'MANIAC';
+                killSub = 'Maniac!';
                 logCommentary(`💥 MANIAC! ${h.playerName} (${h.heroName}) MENDAPATKAN MANIAC!`, 'kill');
                 audioMgr.playManiac();
-              } else if (h.streak >= 5) {
+              } else if (h.multiKillChain >= 5) {
                 killTitle = 'SAVAGE';
+                killSub = 'Savage!';
                 logCommentary(`🌟 SAVAGE! ${h.playerName} (${h.heroName}) MENCETAK SAVAGE SENSASIONAL!`, 'kill');
                 audioMgr.playSavage();
+              } else if (h.spreeStreak === 3) {
+                killTitle = 'KILLING SPREE';
+                killSub = 'Killing Spree!';
+                logCommentary(`🔥 KILLING SPREE! ${h.playerName} (${h.heroName}) sedang on fire!`, 'kill');
+              } else if (h.spreeStreak === 4) {
+                killTitle = 'MEGA KILL';
+                killSub = 'Mega Kill!';
+                logCommentary(`🔥 MEGA KILL! Dominasi ${h.playerName} tak terbendung!`, 'kill');
+              } else if (h.spreeStreak === 5) {
+                killTitle = 'UNSTOPPABLE';
+                killSub = 'Unstoppable!';
+                logCommentary(`💥 UNSTOPPABLE! ${h.playerName} tak bisa dihentikan!`, 'kill');
+              } else if (h.spreeStreak === 6) {
+                killTitle = 'MONSTER KILL';
+                killSub = 'Monster Kill!';
+                logCommentary(`💥 MONSTER KILL! ${h.playerName} mengamuk di Land of Dawn!`, 'kill');
+              } else if (h.spreeStreak === 7) {
+                killTitle = 'GODLIKE';
+                killSub = 'Godlike!';
+                logCommentary(`👑 GODLIKE! ${h.playerName} mencapai level Godlike!`, 'kill');
+              } else if (h.spreeStreak >= 8) {
+                killTitle = 'LEGENDARY';
+                killSub = 'Legendary!';
+                logCommentary(`🌟 LEGENDARY! ${h.playerName} mencatatkan gelar LEGENDARY!`, 'kill');
               } else {
                 logCommentary(`⚔️ ${h.playerName} (${h.heroName}) mengeliminasi ${nearestEnemy.playerName} (${nearestEnemy.heroName})!`, 'kill');
               }
 
-              if (nearestEnemy.streak >= 3) {
-                logCommentary(`🛡️ SHUT DOWN! Dominasi ${nearestEnemy.playerName} dihentikan oleh ${h.playerName}!`, 'kill');
+              if (victimSpree >= 3) {
+                logCommentary(`🛡️ SHUT DOWN! Dominasi ${nearestEnemy.playerName} (${victimSpree} kill streak) dihentikan oleh ${h.playerName}!`, 'kill');
                 audioMgr.playShutdown();
-                nearestEnemy.streak = 0;
               }
 
               // 13. Wipeout & Ace Celebration Check
