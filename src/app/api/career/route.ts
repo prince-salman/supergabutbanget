@@ -74,3 +74,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    await fs.unlink(SAVE_FILE_PATH).catch(() => {});
+    return NextResponse.json({ success: true, message: 'Career save reset successfully' });
+  } catch {
+    return NextResponse.json({ success: true, message: 'Career save already empty' });
+  }
+}

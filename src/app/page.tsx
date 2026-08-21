@@ -213,14 +213,16 @@ export default function Home() {
     }).catch(() => {});
   };
 
-  const handleResetCareer = () => {
+  const handleResetCareer = async () => {
     if (window.confirm('Apakah Anda yakin ingin mereset karier Head Coach dan memulai dari awal?')) {
       safeStorage.remove(STORAGE_KEY);
-      fetch('/api/career', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      }).catch(() => {});
+      try {
+        await fetch('/api/career', { method: 'DELETE' });
+      } catch {}
+      setUserTeam(null);
+      setTournament(null);
+      setNewsArticles([]);
+      setCurrentScreen('screen-welcome');
       window.location.reload();
     }
   };
